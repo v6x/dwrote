@@ -74,6 +74,7 @@ mod font_face; pub use font_face::FontFace;
 mod font_family; pub use font_family::FontFamily;
 mod font_file; pub use font_file::FontFile;
 mod gdi_interop; pub use gdi_interop::GdiInterop;
+mod outline_builder; pub use outline_builder::OutlineBuilder;
 mod rendering_params; pub use rendering_params::RenderingParams;
 mod glyph_run_analysis; pub use glyph_run_analysis::GlyphRunAnalysis;
 
@@ -81,6 +82,10 @@ mod glyph_run_analysis; pub use glyph_run_analysis::GlyphRunAnalysis;
 // functions.  We don't wrap the DWriteFontFileLoader interface and
 // related things.
 mod font_file_loader_impl;
+
+// This is an internal implementation of `GeometrySink` so that we can
+// expose `IDWriteGeometrySink` in an idiomatic way.
+mod geometry_sink_impl;
 
 DEFINE_GUID!{UuidOfIDWriteFactory, 0xb859ee5a, 0xd838, 0x4b5b, 0xa2, 0xe8, 0x1a, 0xdc, 0x7d, 0x93, 0xdb, 0x48}
 

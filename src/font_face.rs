@@ -5,18 +5,24 @@
 use std::slice;
 use std::ptr;
 use std::cell::UnsafeCell;
-use std::mem::zeroed;
+use std::mem::{self, zeroed};
 
+use com_helpers::Com;
 use comptr::ComPtr;
+use font::Font;
+use geometry_sink_impl::GeometrySinkImpl;
+use outline_builder::OutlineBuilder;
 use super::{FontMetrics, FontFile, DefaultDWriteRenderParams, DWriteFactory};
 
-use winapi::um::dwrite::{DWRITE_RENDERING_MODE, DWRITE_RENDERING_MODE_DEFAULT};
+use winapi::ctypes::c_void;
+use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
+use winapi::shared::winerror::S_OK;
+use winapi::um::dcommon::DWRITE_MEASURING_MODE;
+use winapi::um::dwrite::{DWRITE_GLYPH_OFFSET, DWRITE_RENDERING_MODE, DWRITE_RENDERING_MODE_DEFAULT};
 use winapi::um::dwrite::{DWRITE_FONT_METRICS, DWRITE_FONT_SIMULATIONS, DWRITE_MATRIX};
 use winapi::um::dwrite::{DWRITE_GLYPH_METRICS, DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC};
-use winapi::um::dwrite::{IDWriteRenderingParams, IDWriteFontFace, IDWriteFontFile};
-use winapi::shared::minwindef::{BOOL, FALSE};
-use winapi::ctypes::c_void;
-use winapi::um::dcommon::DWRITE_MEASURING_MODE;
+use winapi::um::dwrite::{IDWriteFontCollection, IDWriteFont, IDWriteFontFace, IDWriteFontFile};
+use winapi::um::dwrite::{IDWriteRenderingParams};
 
 pub struct FontFace {
     native: UnsafeCell<ComPtr<IDWriteFontFace>>,
@@ -55,7 +61,7 @@ impl FontFace {
     pub fn get_files(&self) -> Vec<FontFile> {
         unsafe {
             let file_ptrs = self.get_raw_files();
-            file_ptrs.iter().map(|p| FontFile::take(ComPtr::already_addrefed(*p))).collect()
+            file_ptrs.iter().map(|p| FontFile::take(ComPtr::from_ptr(*p))).collect()
         }
     }
 
@@ -197,5 +203,62 @@ impl FontFace {
                                           pixels_per_dip,
                                           measure_mode,
                                           DefaultDWriteRenderParams())
+    }
+
+    pub fn get_glyph_run_outline(&self,
+                                 em_size: f32,
+                                 glyph_indices: &[u16],
+                                 glyph_advances: Option<&[f32]>,
+                                 glyph_offsets: Option<&[DWRITE_GLYPH_OFFSET]>,
+                                 is_sideways: bool,
+                                 is_right_to_left: bool,
+                                 outline_builder: Box<OutlineBuilder>) {
+        unsafe {
+            let glyph_advances = match glyph_advances {
+                None => ptr::null(),
+                Some(glyph_advances) => {
+                    assert_eq!(glyph_advances.len(), glyph_indices.len());
+                    glyph_advances.as_ptr()
+                }
+            };
+            let glyph_offsets = match glyph_offsets {
+                None => ptr::null(),
+                Some(glyph_offsets) => {
+                    assert_eq!(glyph_offsets.len(), glyph_indices.len());
+                    glyph_offsets.as_ptr()
+                }
+            };
+            let is_sideways = if is_sideways { TRUE } else { FALSE };
+            let is_right_to_left = if is_right_to_left { TRUE } else { FALSE };
+            let geometry_sink = GeometrySinkImpl::new(outline_builder);
+            let geometry_sink = geometry_sink.into_interface();
+            let hr = (*self.native.get()).GetGlyphRunOutline(em_size,
+                                                            glyph_indices.as_ptr(),
+                                                            glyph_advances,
+                                                            glyph_offsets,
+                                                            glyph_indices.len() as u32,
+                                                            is_sideways,
+                                                            is_right_to_left,
+                                                            geometry_sink);
+            assert_eq!(hr, S_OK);
+        }
+    }
+
+    #[inline]
+    pub fn get_index(&self) -> u32 {
+        unsafe {
+            (*self.native.get()).GetIndex()
+        }
+    }
+}
+
+impl Clone for FontFace {
+    fn clone(&self) -> FontFace {
+        unsafe {
+            FontFace {
+                native: UnsafeCell::new((*self.native.get()).clone()),
+                metrics: self.metrics,
+            }
+        }
     }
 }
