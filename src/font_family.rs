@@ -70,6 +70,7 @@ impl FontFamily {
             let mut font: ComPtr<IDWriteFont> = ComPtr::new();
             let hr = (*self.native.get()).GetFont(index, font.getter_addrefs());
             assert!(hr == 0);
+            assert!(!font.as_ptr().is_null());
             Font::take(font)
         }
     }
