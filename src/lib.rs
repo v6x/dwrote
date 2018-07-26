@@ -68,7 +68,7 @@ use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryW};
 #[macro_use] mod com_helpers;
 
 mod bitmap_render_target; pub use bitmap_render_target::BitmapRenderTarget;
-mod font; pub use font::Font;
+mod font; pub use font::{Font, InformationalStringId};
 mod font_collection; pub use font_collection::FontCollection;
 mod font_face; pub use font_face::FontFace;
 mod font_family; pub use font_family::FontFamily;
