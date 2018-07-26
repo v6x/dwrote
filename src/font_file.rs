@@ -5,18 +5,24 @@
 use std::slice;
 use std::ptr;
 use std::cell::UnsafeCell;
+use std::path::PathBuf;
+use std::ffi::OsString;
+use std::os::windows::ffi::OsStringExt;
 
 use comptr::ComPtr;
 
 use winapi::ctypes::c_void;
 use winapi::um::dwrite::{IDWriteFontFace, IDWriteFontFile, IDWriteFontFileStream};
-use winapi::um::dwrite::{IDWriteFontFileLoader, DWRITE_FONT_SIMULATIONS};
-use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_UNKNOWN, DWRITE_FONT_FACE_TYPE};
-use winapi::um::dwrite::DWRITE_FONT_FILE_TYPE_UNKNOWN;
+use winapi::um::dwrite::{IDWriteFontFileLoader, IDWriteLocalFontFileLoader};
+use winapi::um::dwrite::{DWRITE_FONT_SIMULATIONS, DWRITE_FONT_FACE_TYPE_UNKNOWN};
+use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE, DWRITE_FONT_FILE_TYPE_UNKNOWN};
 
 use font_file_loader_impl::DataFontHelper;
 use font_face::FontFace;
 use super::DWriteFactory;
+
+DEFINE_GUID!{UuidOfIDWriteFontFileLoader, 0x727cad4e, 0xd6af, 0x4c9e, 0x8a, 0x08, 0xd6, 0x95, 0xb1, 0x1c, 0xaa, 0x49}
+DEFINE_GUID!{UuidOfIDWriteLocalFontFileLoader, 0xb2d9f3ec, 0xc9fe, 0x4a11, 0xa2, 0xec, 0xd8, 0x62, 0x08, 0xf7, 0xc0, 0xa2}
 
 pub struct FontFile {
     native: UnsafeCell<ComPtr<IDWriteFontFile>>,
@@ -34,7 +40,7 @@ impl FontFile {
             face_type: DWRITE_FONT_FACE_TYPE_UNKNOWN,
         };
 
-        if ff.analyze() == false {
+        if ff.analyze() == 0 {
             DataFontHelper::unregister_font_data(key);
             return None;
         }
@@ -42,20 +48,35 @@ impl FontFile {
         Some(ff)
     }
 
-    fn analyze(&mut self) -> bool {
+    pub fn analyze_data(data: &[u8]) -> u32 {
+        let (font_file, key) = DataFontHelper::register_font_data(data);
+
+        let mut ff = FontFile {
+            native: UnsafeCell::new(font_file),
+            data_key: key,
+            face_type: DWRITE_FONT_FACE_TYPE_UNKNOWN,
+        };
+
+        ff.analyze()
+    }
+
+    fn analyze(&mut self) -> u32 {
         let mut face_type = DWRITE_FONT_FACE_TYPE_UNKNOWN;
+        let mut num_faces = 0;
         unsafe {
             let mut supported = 0;
             let mut _file_type = DWRITE_FONT_FILE_TYPE_UNKNOWN;
-            let mut _num_faces = 0;
 
-            let hr = (*self.as_ptr()).Analyze(&mut supported, &mut _file_type, &mut face_type, &mut _num_faces);
+            let hr = (*self.native.get()).Analyze(&mut supported,
+                                                  &mut _file_type,
+                                                  &mut face_type,
+                                                  &mut num_faces);
             if hr != 0 || supported == 0 {
-                return false;
+                return 0
             }
         }
         self.face_type = face_type;
-        true
+        num_faces as u32
     }
 
     pub fn take(native: ComPtr<IDWriteFontFile>) -> FontFile {
@@ -116,14 +137,66 @@ impl FontFile {
         }
     }
 
+    // This is a helper to get the path of a font file,
+    // without requiring callers to deal with loaders.
+    pub fn get_font_file_path(&self) -> Option<PathBuf> {
+        unsafe {
+            let mut ref_key: *const c_void = ptr::null();
+            let mut ref_key_size: u32 = 0;
+            let hr = (*self.native.get()).GetReferenceKey(&mut ref_key, &mut ref_key_size);
+            assert!(hr == 0);
+
+            let mut loader: ComPtr<IDWriteFontFileLoader> = ComPtr::new();
+            let hr = (*self.native.get()).GetLoader(loader.getter_addrefs());
+            assert!(hr == 0);
+
+            let mut local_loader: ComPtr<IDWriteLocalFontFileLoader> =
+                match loader.query_interface(&UuidOfIDWriteLocalFontFileLoader) {
+                    Some(local_loader) => local_loader,
+                    None => return None,
+                };
+
+            let mut file_path_len = 0;
+            let hr = local_loader.GetFilePathLengthFromKey(ref_key,
+                                                           ref_key_size,
+                                                           &mut file_path_len);
+            assert_eq!(hr, 0);
+
+            let mut file_path_buf = vec![0; file_path_len as usize + 1];
+            let hr = local_loader.GetFilePathFromKey(ref_key,
+                                                     ref_key_size,
+                                                     file_path_buf.as_mut_ptr(),
+                                                     file_path_len + 1);
+            assert_eq!(hr, 0);
+
+            if let Some(&0) = file_path_buf.last() {
+                file_path_buf.pop();
+            }
+
+            Some(PathBuf::from(OsString::from_wide(&file_path_buf)))
+        }
+    }
+
     pub fn create_face(&self, face_index: u32, simulations: DWRITE_FONT_SIMULATIONS) -> FontFace {
         unsafe {
             let mut face: ComPtr<IDWriteFontFace> = ComPtr::new();
-            let ptr = self.as_ptr();
-            let hr = (*DWriteFactory()).CreateFontFace(self.face_type, 1, &ptr,
+            let ptr = self.as_com_ptr();
+            let hr = (*DWriteFactory()).CreateFontFace(self.face_type, 1, &ptr.as_ptr(),
                                                        face_index, simulations, face.getter_addrefs());
             assert!(hr == 0);
             FontFace::take(face)
+        }
+    }
+}
+
+impl Clone for FontFile {
+    fn clone(&self) -> FontFile {
+        unsafe {
+            FontFile {
+                native: UnsafeCell::new((*self.native.get()).clone()),
+                data_key: self.data_key,
+                face_type: self.face_type,
+            }
         }
     }
 }
