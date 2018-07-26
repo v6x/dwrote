@@ -83,6 +83,9 @@ mod glyph_run_analysis; pub use glyph_run_analysis::GlyphRunAnalysis;
 // related things.
 mod font_file_loader_impl;
 
+// This is an implementation of `FontCollectionLoader` for client code.
+mod font_collection_impl; pub use font_collection_impl::CustomFontCollectionLoaderImpl;
+
 // This is an internal implementation of `GeometrySink` so that we can
 // expose `IDWriteGeometrySink` in an idiomatic way.
 mod geometry_sink_impl;
