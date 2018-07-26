@@ -5,8 +5,12 @@
 use std::cell::UnsafeCell;
 
 use comptr::ComPtr;
-use winapi::um::dwrite::{IDWriteFontFace, IDWriteLocalizedStrings, IDWriteFont};
-use winapi::um::dwrite::IDWriteFontFamily;
+use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
+use winapi::shared::winerror::S_OK;
+use winapi::um::dwrite::{DWRITE_FONT_METRICS, DWRITE_INFORMATIONAL_STRING_FULL_NAME, DWRITE_INFORMATIONAL_STRING_ID};
+use winapi::um::dwrite::{DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_CID_NAME};
+use winapi::um::dwrite::{DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_NAME, IDWriteFontFace};
+use winapi::um::dwrite::{IDWriteLocalizedStrings, IDWriteFont, IDWriteFontFamily};
 use std::mem;
 
 use super::*;
@@ -54,6 +58,12 @@ impl Font {
         }
     }
 
+    pub fn simulations(&self) -> FontSimulations {
+        unsafe {
+            mem::transmute::<u32, FontSimulations>((*self.native.get()).GetSimulations())
+        }
+    }
+
     pub fn family_name(&self) -> String {
         unsafe {
             let mut family: ComPtr<IDWriteFontFamily> = ComPtr::new();
@@ -74,6 +84,23 @@ impl Font {
         }
     }
 
+    pub fn informational_string(&self, id: InformationalStringId) -> Option<String> {
+        unsafe {
+            let mut names: ComPtr<IDWriteLocalizedStrings> = ComPtr::new();
+            let mut exists = FALSE;
+            let id = id as DWRITE_INFORMATIONAL_STRING_ID;
+            let hr = (*self.native.get()).GetInformationalStrings(id,
+                                                                  names.getter_addrefs(),
+                                                                  &mut exists);
+            assert!(hr == S_OK);
+            if exists == TRUE {
+                Some(get_locale_string(&mut names))
+            } else {
+                None
+            }
+        }
+    }
+
     pub fn create_font_face(&self) -> FontFace {
         // FIXME create_font_face should cache the FontFace and return it,
         // there's a 1:1 relationship
@@ -84,4 +111,30 @@ impl Font {
             FontFace::take(face)
         }
     }
+
+    pub fn metrics(&self) -> DWRITE_FONT_METRICS {
+        unsafe {
+            let mut metrics = mem::zeroed();
+            (*self.native.get()).GetMetrics(&mut metrics);
+            metrics
+        }
+    }
+}
+
+impl Clone for Font {
+    fn clone(&self) -> Font {
+        unsafe {
+            Font {
+                native: UnsafeCell::new((*self.native.get()).clone()),
+            }
+        }
+    }
+}
+
+#[repr(u32)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum InformationalStringId {
+    FullName = DWRITE_INFORMATIONAL_STRING_FULL_NAME,
+    PostscriptName = DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_NAME,
+    PostscriptCidName = DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_CID_NAME,
 }
