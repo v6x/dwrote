@@ -76,8 +76,8 @@ impl FontFile {
         }
     }
 
-    pub unsafe fn as_ptr(&self) -> *mut IDWriteFontFile {
-        (*self.native.get()).as_ptr()
+    pub(crate) unsafe fn as_com_ptr(&self) -> ComPtr<IDWriteFontFile> {
+        (*self.native.get()).clone()
     }
 
     // This is a helper to read the contents of this FontFile,
