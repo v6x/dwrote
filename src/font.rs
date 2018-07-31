@@ -50,7 +50,7 @@ impl Font {
 
     pub fn weight(&self) -> FontWeight {
         unsafe {
-            FontWeight::from_u32((*self.native.get()).GetWeight().0)
+            FontWeight::from_u32((*self.native.get()).GetWeight())
         }
     }
 
