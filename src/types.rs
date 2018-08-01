@@ -24,8 +24,8 @@ pub enum FontWeight {
 }
 
 impl FontWeight {
-    fn t(&self) -> winapi::DWRITE_FONT_WEIGHT {
-        unsafe { mem::transmute::<u32, winapi::DWRITE_FONT_WEIGHT>(self.to_u32()) }
+    fn t(&self) -> DWRITE_FONT_WEIGHT {
+        unsafe { mem::transmute::<u32, DWRITE_FONT_WEIGHT>(self.to_u32()) }
     }
     pub fn to_u32(&self) -> u32 {
         match self {
