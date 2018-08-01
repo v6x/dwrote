@@ -7,7 +7,10 @@ use std::ptr;
 use std::cell::UnsafeCell;
 use std::path::PathBuf;
 use std::ffi::OsString;
-use std::os::windows::ffi::OsStringExt;
+use std::fs::File;
+use std::os::windows::ffi::{OsStrExt, OsStringExt};
+use std::os::windows::io::IntoRawHandle;
+use std::path::Path;
 
 use comptr::ComPtr;
 
@@ -31,6 +34,27 @@ pub struct FontFile {
 }
 
 impl FontFile {
+    pub fn new_from_path<P>(path: P) -> Option<FontFile> where P: AsRef<Path> {
+        unsafe {
+            let mut path: Vec<u16> = path.as_ref().as_os_str().encode_wide().collect();
+            path.push(0);
+
+            let mut font_file: ComPtr<IDWriteFontFile> = ComPtr::new();
+            let hr = (*DWriteFactory()).CreateFontFileReference(path.as_ptr(),
+                                                                ptr::null(),
+                                                                font_file.getter_addrefs());
+            if hr != 0 || font_file.is_null() {
+                return None
+            }
+
+            Some(FontFile {
+                native: UnsafeCell::new(font_file),
+                data_key: 0,
+                face_type: DWRITE_FONT_FACE_TYPE_UNKNOWN,
+            })
+        }
+    }
+
     pub fn new_from_data(data: &[u8]) -> Option<FontFile> {
         let (font_file, key) = DataFontHelper::register_font_data(data);
 

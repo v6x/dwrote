@@ -74,6 +74,10 @@ impl<T> ComPtr<T> {
         self.ptr = ptr::null_mut();
         ptr
     }
+
+    pub fn is_null(&self) -> bool {
+        self.ptr.is_null()
+    }
 }
 
 impl<T> Clone for ComPtr<T> {
