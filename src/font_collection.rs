@@ -4,11 +4,20 @@
 
 use comptr::ComPtr;
 use winapi::um::dwrite::{IDWriteFontFamily, IDWriteFont, IDWriteFontCollection};
+use winapi::um::dwrite::{IDWriteFontCollectionLoader};
 use winapi::shared::minwindef::{BOOL, FALSE};
+use winapi::shared::winerror::S_OK;
 use std::cell::UnsafeCell;
+use std::mem;
+use std::ptr;
+use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 
-use super::{DWriteFactory, FontFamily, Font, FontFace, FontDescriptor};
+use super::{CustomFontCollectionLoaderImpl, DWriteFactory, FontFamily, Font};
+use super::{FontFace, FontDescriptor};
 use helpers::*;
+use com_helpers::Com;
+
+static NEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 
 pub struct FontCollectionFamilyIterator {
     collection: ComPtr<IDWriteFontCollection>,
@@ -53,6 +62,23 @@ impl FontCollection {
     pub fn take(native: ComPtr<IDWriteFontCollection>) -> FontCollection {
         FontCollection {
             native: UnsafeCell::new(native)
+        }
+    }
+
+    pub fn from_loader(collection_loader: ComPtr<IDWriteFontCollectionLoader>) -> FontCollection {
+        unsafe {
+            let factory = DWriteFactory();
+            assert_eq!((*factory).RegisterFontCollectionLoader(collection_loader.clone().forget()),
+                       S_OK);
+            let mut collection: ComPtr<IDWriteFontCollection> = ComPtr::new();
+            let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
+            assert_eq!((*factory).CreateCustomFontCollection(
+                            collection_loader.clone().forget(),
+                            &id as *const usize as *const _,
+                            mem::size_of::<AtomicUsize>() as u32,
+                            collection.getter_addrefs()),
+                       S_OK);
+            FontCollection::take(collection)
         }
     }
 

@@ -48,7 +48,7 @@ macro_rules! implement_iunknown {
                     let this = $typ::from_interface(This);
                     let count = this.refcount.fetch_sub(1, atomic::Ordering::Release) - 1;
                     if count == 0 {
-                        FontFileStream::destroy(This);
+                        <$typ as Com<$interface>>::destroy(This as *mut $interface);
                     }
                     count as ULONG
                 }
@@ -61,7 +61,7 @@ macro_rules! implement_iunknown {
             QueryInterface: {
                 unsafe extern "system" fn QueryInterface(This: *mut IUnknown,
                                                          riid: REFIID,
-                                                         ppvObject: *mut *mut c_void) -> HRESULT {
+                                                         ppvObject: *mut *mut $crate::winapi::ctypes::c_void) -> HRESULT {
                     let this = if guid_equals!(*riid, $iuud) {
                         mem::transmute(This)
                     } else if guid_equals!(*riid, UuidOfIUnknown) {

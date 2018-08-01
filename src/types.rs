@@ -102,6 +102,17 @@ impl FontStyle {
     pub fn from_u32(v: u32) -> FontStyle { unsafe { mem::transmute::<u32, FontStyle>(v) } }
 }
 
+// mirrors DWRITE_FONT_SIMULATIONS
+#[repr(u32)]
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum FontSimulations {
+    None = winapi::um::dwrite::DWRITE_FONT_SIMULATIONS_NONE,
+    Bold = winapi::um::dwrite::DWRITE_FONT_SIMULATIONS_BOLD,
+    Oblique = winapi::um::dwrite::DWRITE_FONT_SIMULATIONS_OBLIQUE,
+    BoldOblique = winapi::um::dwrite::DWRITE_FONT_SIMULATIONS_BOLD |
+        winapi::um::dwrite::DWRITE_FONT_SIMULATIONS_OBLIQUE,
+}
+
 #[derive(Deserialize, Serialize, PartialEq, Debug, Clone)]
 pub struct FontDescriptor {
     pub family_name: String,

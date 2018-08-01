@@ -2,6 +2,7 @@
 
 use std::{mem, ptr};
 use std::collections::HashMap;
+use std::sync::atomic::AtomicUsize;
 use std::sync::{Mutex, atomic};
 use std::marker::Send;
 use winapi::ctypes::c_void;
@@ -47,6 +48,9 @@ const FontFileLoaderVtbl: &'static IDWriteFontFileLoaderVtbl = &IDWriteFontFileL
                     file_stream.as_ptr()
                 }
             };
+
+            // This is an addref getter, so make sure to do that!
+            (*stream).AddRef();
 
             *fontFileStream = stream;
             S_OK
@@ -133,7 +137,7 @@ const FontFileStreamVtbl: &'static IDWriteFontFileStreamVtbl = &IDWriteFontFileS
 impl FontFileStream {
     pub fn new(data: &[u8]) -> FontFileStream {
         FontFileStream {
-            refcount: atomic::ATOMIC_USIZE_INIT,
+            refcount: AtomicUsize::new(1),
             data: data.to_vec(),
         }
     }
@@ -174,7 +178,9 @@ impl DataFontHelper {
         unsafe {
             let key = FONT_FILE_KEY.fetch_add(1, atomic::Ordering::Relaxed);
             let font_file_stream_native = FontFileStream::new(font_data);
-            let font_file_stream = ComPtr::from_ptr(font_file_stream_native.into_interface());
+            let font_file_stream: ComPtr<IDWriteFontFileStream> =
+                ComPtr::from_ptr(font_file_stream_native.into_interface());
+
             {
                 let mut map = FONT_FILE_STREAM_MAP.lock().unwrap();
                 map.insert(key, font_file_stream);
