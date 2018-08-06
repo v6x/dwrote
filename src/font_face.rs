@@ -18,9 +18,13 @@ use winapi::ctypes::c_void;
 use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
 use winapi::shared::winerror::S_OK;
 use winapi::um::dcommon::DWRITE_MEASURING_MODE;
-use winapi::um::dwrite::{DWRITE_GLYPH_OFFSET, DWRITE_RENDERING_MODE, DWRITE_RENDERING_MODE_DEFAULT};
-use winapi::um::dwrite::{DWRITE_FONT_METRICS, DWRITE_FONT_SIMULATIONS, DWRITE_MATRIX};
-use winapi::um::dwrite::{DWRITE_GLYPH_METRICS, DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC};
+use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_BITMAP, DWRITE_FONT_FACE_TYPE_CFF};
+use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_RAW_CFF, DWRITE_FONT_FACE_TYPE_TYPE1};
+use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_TRUETYPE};
+use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_TRUETYPE_COLLECTION, DWRITE_FONT_FACE_TYPE_VECTOR};
+use winapi::um::dwrite::{DWRITE_FONT_METRICS, DWRITE_FONT_SIMULATIONS, DWRITE_GLYPH_METRICS};
+use winapi::um::dwrite::{DWRITE_GLYPH_OFFSET, DWRITE_MATRIX, DWRITE_RENDERING_MODE};
+use winapi::um::dwrite::{DWRITE_RENDERING_MODE_DEFAULT, DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC};
 use winapi::um::dwrite::{IDWriteFontCollection, IDWriteFont, IDWriteFontFace, IDWriteFontFile};
 use winapi::um::dwrite::{IDWriteRenderingParams};
 
@@ -245,6 +249,22 @@ impl FontFace {
     }
 
     #[inline]
+    pub fn get_type(&self) -> FontFaceType {
+        unsafe {
+            match (*self.native.get()).GetType() {
+                DWRITE_FONT_FACE_TYPE_CFF => FontFaceType::Cff,
+                DWRITE_FONT_FACE_TYPE_RAW_CFF => FontFaceType::RawCff,
+                DWRITE_FONT_FACE_TYPE_TRUETYPE => FontFaceType::TrueType,
+                DWRITE_FONT_FACE_TYPE_TRUETYPE_COLLECTION => FontFaceType::TrueTypeCollection,
+                DWRITE_FONT_FACE_TYPE_TYPE1 => FontFaceType::Type1,
+                DWRITE_FONT_FACE_TYPE_VECTOR => FontFaceType::Vector,
+                DWRITE_FONT_FACE_TYPE_BITMAP => FontFaceType::Bitmap,
+                _ => FontFaceType::Unknown,
+            }
+        }
+    }
+
+    #[inline]
     pub fn get_index(&self) -> u32 {
         unsafe {
             (*self.native.get()).GetIndex()
@@ -261,4 +281,16 @@ impl Clone for FontFace {
             }
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum FontFaceType {
+    Unknown,
+    Cff,
+    RawCff,
+    TrueType,
+    TrueTypeCollection,
+    Type1,
+    Vector,
+    Bitmap,
 }
