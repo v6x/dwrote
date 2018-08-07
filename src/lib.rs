@@ -70,7 +70,7 @@ use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryW};
 mod bitmap_render_target; pub use bitmap_render_target::BitmapRenderTarget;
 mod font; pub use font::{Font, InformationalStringId};
 mod font_collection; pub use font_collection::FontCollection;
-mod font_face; pub use font_face::FontFace;
+mod font_face; pub use font_face::{FontFace, FontFaceType};
 mod font_family; pub use font_family::FontFamily;
 mod font_file; pub use font_file::FontFile;
 mod gdi_interop; pub use gdi_interop::GdiInterop;
