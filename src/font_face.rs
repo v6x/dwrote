@@ -14,6 +14,7 @@ use geometry_sink_impl::GeometrySinkImpl;
 use outline_builder::OutlineBuilder;
 use super::{FontMetrics, FontFile, DefaultDWriteRenderParams, DWriteFactory};
 
+use winapi::Interface;
 use winapi::ctypes::c_void;
 use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
 use winapi::shared::winerror::S_OK;
@@ -27,9 +28,11 @@ use winapi::um::dwrite::{DWRITE_GLYPH_OFFSET, DWRITE_MATRIX, DWRITE_RENDERING_MO
 use winapi::um::dwrite::{DWRITE_RENDERING_MODE_DEFAULT, DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC};
 use winapi::um::dwrite::{IDWriteFontCollection, IDWriteFont, IDWriteFontFace, IDWriteFontFile};
 use winapi::um::dwrite::{IDWriteRenderingParams};
+use winapi::um::dwrite_3::{IDWriteFontFace5, IDWriteFontResource, DWRITE_FONT_AXIS_VALUE};
 
 pub struct FontFace {
     native: UnsafeCell<ComPtr<IDWriteFontFace>>,
+    face5: UnsafeCell<Option<ComPtr<IDWriteFontFace5>>>,
     metrics: FontMetrics,
 }
 
@@ -41,6 +44,7 @@ impl FontFace {
             (*cell.get()).GetMetrics(&mut metrics);
             FontFace {
                 native: cell,
+                face5: UnsafeCell::new(None),
                 metrics: metrics,
             }
         }
@@ -270,6 +274,53 @@ impl FontFace {
             (*self.native.get()).GetIndex()
         }
     }
+
+    #[inline]
+    unsafe fn get_face5(&self) -> &mut ComPtr<IDWriteFontFace5> {
+        (*self.face5.get()).get_or_insert_with(|| {
+            (*self.native.get())
+                .query_interface(&IDWriteFontFace5::uuidof())
+                .unwrap_or(ComPtr::new())
+        })
+    }
+
+    pub fn has_variations(&self) -> bool {
+        unsafe {
+            let face5 = self.get_face5();
+            if !face5.is_null() {
+                face5.HasVariations() == TRUE
+            } else {
+                false
+            }
+        }
+    }
+
+    pub fn create_font_face_with_variations(
+        &self,
+        simulations: DWRITE_FONT_SIMULATIONS,
+        axis_values: &[DWRITE_FONT_AXIS_VALUE],
+    ) -> Option<FontFace> {
+        unsafe {
+            let face5 = self.get_face5();
+            if !face5.is_null() {
+                let mut resource: ComPtr<IDWriteFontResource> = ComPtr::new();
+                let hr = face5.GetFontResource(resource.getter_addrefs());
+                if hr == S_OK && !resource.is_null() {
+                    let mut var_face: ComPtr<IDWriteFontFace> = ComPtr::new();
+                    let hr = resource.CreateFontFace(
+                        simulations,
+                        axis_values.as_ptr(),
+                        axis_values.len() as u32,
+                        var_face.getter_addrefs(),
+                    );
+                    if hr == S_OK && !var_face.is_null() {
+                        return Some(FontFace::take(var_face));
+                    }
+                }
+            }
+            None
+        }
+    }
 }
 
 impl Clone for FontFace {
@@ -277,6 +328,7 @@ impl Clone for FontFace {
         unsafe {
             FontFace {
                 native: UnsafeCell::new((*self.native.get()).clone()),
+                face5: UnsafeCell::new(None),
                 metrics: self.metrics,
             }
         }

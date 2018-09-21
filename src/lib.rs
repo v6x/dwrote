@@ -63,6 +63,7 @@ pub use winapi::um::dwrite::{DWRITE_TEXTURE_ALIASED_1x1, DWRITE_TEXTURE_CLEARTYP
 pub use winapi::um::dwrite::{DWRITE_FONT_SIMULATIONS};
 pub use winapi::um::dwrite::{DWRITE_RENDERING_MODE};
 pub use winapi::um::dwrite::{DWRITE_TEXTURE_TYPE};
+pub use winapi::um::dwrite_3::{DWRITE_FONT_AXIS_VALUE};
 pub use winapi::um::dcommon::{DWRITE_MEASURING_MODE};
 use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryW};
 
