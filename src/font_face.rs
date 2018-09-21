@@ -32,6 +32,7 @@ use winapi::um::dwrite_3::{IDWriteFontFace5, IDWriteFontResource, DWRITE_FONT_AX
 
 pub struct FontFace {
     native: UnsafeCell<ComPtr<IDWriteFontFace>>,
+    face5: UnsafeCell<Option<ComPtr<IDWriteFontFace5>>>,
     metrics: FontMetrics,
 }
 
@@ -43,6 +44,7 @@ impl FontFace {
             (*cell.get()).GetMetrics(&mut metrics);
             FontFace {
                 native: cell,
+                face5: UnsafeCell::new(None),
                 metrics: metrics,
             }
         }
@@ -273,13 +275,23 @@ impl FontFace {
         }
     }
 
+    #[inline]
+    unsafe fn get_face5(&self) -> &mut ComPtr<IDWriteFontFace5> {
+        (*self.face5.get()).get_or_insert_with(|| {
+            (*self.native.get())
+                .query_interface(&IDWriteFontFace5::uuidof())
+                .unwrap_or(ComPtr::new())
+        })
+    }
+
     pub fn has_variations(&self) -> bool {
         unsafe {
-            let face5: Option<ComPtr<IDWriteFontFace5>> = (*self.native.get()).query_interface(&IDWriteFontFace5::uuidof());
-            if let Some(face) = face5 {
-                return face.HasVariations() == TRUE;
+            let face5 = self.get_face5();
+            if !face5.is_null() {
+                face5.HasVariations() == TRUE
+            } else {
+                false
             }
-            false
         }
     }
 
@@ -289,10 +301,10 @@ impl FontFace {
         axis_values: &[DWRITE_FONT_AXIS_VALUE],
     ) -> Option<FontFace> {
         unsafe {
-            let face5: Option<ComPtr<IDWriteFontFace5>> = (*self.native.get()).query_interface(&IDWriteFontFace5::uuidof());
-            if let Some(face) = face5 {
+            let face5 = self.get_face5();
+            if !face5.is_null() {
                 let mut resource: ComPtr<IDWriteFontResource> = ComPtr::new();
-                let hr = face.GetFontResource(resource.getter_addrefs());
+                let hr = face5.GetFontResource(resource.getter_addrefs());
                 if hr == S_OK && !resource.is_null() {
                     let mut var_face: ComPtr<IDWriteFontFace> = ComPtr::new();
                     let hr = resource.CreateFontFace(
@@ -316,6 +328,7 @@ impl Clone for FontFace {
         unsafe {
             FontFace {
                 native: UnsafeCell::new((*self.native.get()).clone()),
+                face5: UnsafeCell::new(None),
                 metrics: self.metrics,
             }
         }
