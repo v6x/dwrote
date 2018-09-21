@@ -3,7 +3,7 @@ name = "dwrote"
 description = "Lightweight binding to DirectWrite."
 repository = "https://github.com/servo/dwrote-rs"
 license = "MPL-2.0"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Vladimir Vukicevic <vladimir@pobox.com>"]
 
 [lib]
@@ -12,6 +12,6 @@ name = "dwrote"
 [dependencies]
 libc = "0.2"
 lazy_static = "1"
-winapi = { version = "0.3", features = ["dwrite", "dwrite_1", "winnt", "unknwnbase", "libloaderapi", "winnls"] }
+winapi = { version = "0.3.6", features = ["dwrite", "dwrite_1", "dwrite_3", "winnt", "unknwnbase", "libloaderapi", "winnls"] }
 serde = "1.0"
 serde_derive = "1.0"
