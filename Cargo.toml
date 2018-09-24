@@ -9,9 +9,13 @@ authors = ["Vladimir Vukicevic <vladimir@pobox.com>"]
 [lib]
 name = "dwrote"
 
+[features]
+default = ["serde_serialization"]
+serde_serialization = ["serde", "serde_derive"]
+
 [dependencies]
 libc = "0.2"
 lazy_static = "1"
 winapi = { version = "0.3.6", features = ["dwrite", "dwrite_1", "dwrite_3", "winnt", "unknwnbase", "libloaderapi", "winnls"] }
-serde = "1.0"
-serde_derive = "1.0"
+serde = { version = "1.0", optional = true }
+serde_derive = { version = "1.0", optional = true }
