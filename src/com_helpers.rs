@@ -29,6 +29,7 @@ macro_rules! implement_iunknown {
                         return $crate::winapi::shared::winerror::E_NOINTERFACE;
                     };
 
+                    (*This).AddRef();
                     *ppvObject = this;
                     return S_OK;
                 }
@@ -69,6 +70,7 @@ macro_rules! implement_iunknown {
                         return $crate::winapi::shared::winerror::E_NOINTERFACE;
                     };
 
+                    (*This).AddRef();
                     *ppvObject = this;
                     return S_OK;
                 }
