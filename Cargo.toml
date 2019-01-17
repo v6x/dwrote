@@ -4,7 +4,7 @@ description = "Lightweight binding to DirectWrite."
 repository = "https://github.com/servo/dwrote-rs"
 license = "MPL-2.0"
 version = "0.8.0"
-authors = ["Vladimir Vukicevic <vladimir@pobox.com>"]
+authors = ["The Servo Project Developers", "Vladimir Vukicevic <vladimir@pobox.com>"]
 
 [lib]
 name = "dwrote"
