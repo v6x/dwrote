@@ -5,7 +5,7 @@
 use std::cell::UnsafeCell;
 use std::ptr::null_mut;
 
-use winapi::um::dwrite_2::IDWriteFontFallback;
+use winapi::um::dwrite_2::{IDWriteFactory2, IDWriteFontFallback};
 
 use super::*;
 use helpers::*;
@@ -24,6 +24,19 @@ pub struct FallbackResult {
 }
 
 impl FontFallback {
+    pub fn get_system_fallback() -> Option<FontFallback> {
+        unsafe {
+            let factory = ComPtr::already_addrefed(DWriteFactory());
+            let factory2 = factory.query_interface::<IDWriteFactory2>(&IDWriteFactory2::uuidof());
+            std::mem::forget(factory);
+            let factory2 = factory2?;
+            let mut native = null_mut();
+            let hr = factory2.GetSystemFontFallback(&mut native);
+            assert!(hr == 0);
+            Some(Self::take(ComPtr::from_ptr(native)))
+        }
+    }
+
     pub fn take(native: ComPtr<IDWriteFontFallback>) -> FontFallback {
         FontFallback {
             native: UnsafeCell::new(native),

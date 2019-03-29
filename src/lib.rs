@@ -77,7 +77,7 @@ mod bitmap_render_target; pub use bitmap_render_target::BitmapRenderTarget;
 mod font; pub use font::{Font, InformationalStringId};
 mod font_collection; pub use font_collection::FontCollection;
 mod font_face; pub use font_face::{FontFace, FontFaceType};
-mod font_fallback; pub use font_fallback::FontFallback;
+mod font_fallback; pub use font_fallback::{FallbackResult, FontFallback};
 mod font_family; pub use font_family::FontFamily;
 mod font_file; pub use font_file::FontFile;
 mod gdi_interop; pub use gdi_interop::GdiInterop;
@@ -95,7 +95,10 @@ mod font_file_loader_impl;
 mod font_collection_impl; pub use font_collection_impl::CustomFontCollectionLoaderImpl;
 
 // This is an implementation of `TextAnalysisSource` for client code.
-mod text_analysis_source_impl; pub use text_analysis_source_impl::CustomTextAnalysisSourceImpl;
+mod text_analysis_source_impl;
+pub use text_analysis_source_impl::{CustomTextAnalysisSourceImpl, NumberSubstitution,
+  TextAnalysisSourceImpl
+};
 
 // This is an internal implementation of `GeometrySink` so that we can
 // expose `IDWriteGeometrySink` in an idiomatic way.

@@ -4,7 +4,10 @@
 
 use std::cell::UnsafeCell;
 
+use winapi::ctypes::wchar_t;
 use winapi::um::dwrite::IDWriteTextAnalysisSource;
+
+use com_helpers::Com;
 
 use super::*;
 
@@ -13,7 +16,27 @@ pub struct TextAnalysisSource {
 }
 
 impl TextAnalysisSource {
+    /// Create a new custom TextAnalysisSource for the given text and a trait
+    /// implementation.
+    ///
+    /// Note: this method only supports a single `NumberSubstitution` for the
+    /// entire string.
+    pub fn new(inner: Box<dyn TextAnalysisSourceImpl>, text: Vec<wchar_t>,
+        number_subst: NumberSubstitution) -> TextAnalysisSource
+    {
+        let native = CustomTextAnalysisSourceImpl::new_native(inner, text, number_subst);
+        TextAnalysisSource::take(native)
+    }
+
     pub unsafe fn as_ptr(&self) -> *mut IDWriteTextAnalysisSource {
         (*self.native.get()).as_ptr()
     }
+
+    // TODO: following crate conventions, but there's a safety problem
+    pub fn take(native: ComPtr<IDWriteTextAnalysisSource>) -> TextAnalysisSource {
+        TextAnalysisSource {
+            native: UnsafeCell::new(native),
+        }
+    }
+
 }

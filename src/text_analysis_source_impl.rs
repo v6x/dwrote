@@ -78,7 +78,7 @@ impl CustomTextAnalysisSourceImpl {
     ///
     /// Note: this method only supports a single `NumberSubstitution` for the
     /// entire string.
-    fn new(inner: Box<dyn TextAnalysisSourceImpl>, text: Vec<wchar_t>,
+    pub fn new_native(inner: Box<dyn TextAnalysisSourceImpl>, text: Vec<wchar_t>,
         number_subst: NumberSubstitution) -> ComPtr<IDWriteTextAnalysisSource>
     {
         assert!(text.len() <= (std::u32::MAX as usize));
