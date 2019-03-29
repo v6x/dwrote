@@ -21,10 +21,12 @@ impl TextAnalysisSource {
     ///
     /// Note: this method only supports a single `NumberSubstitution` for the
     /// entire string.
-    pub fn new(inner: Box<dyn TextAnalysisSourceImpl>, text: Vec<wchar_t>,
-        number_subst: NumberSubstitution) -> TextAnalysisSource
+    pub fn from_text_and_number_subst(inner: Box<dyn TextAnalysisSourceMethods>,
+        text: Vec<wchar_t>, number_subst: NumberSubstitution) -> TextAnalysisSource
     {
-        let native = CustomTextAnalysisSourceImpl::new_native(inner, text, number_subst);
+        let native = CustomTextAnalysisSourceImpl::from_text_and_number_subst_native(
+            inner, text, number_subst
+        );
         TextAnalysisSource::take(native)
     }
 

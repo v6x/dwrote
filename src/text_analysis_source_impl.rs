@@ -29,7 +29,7 @@ use com_helpers::{Com, UuidOfIUnknown};
 use comptr::ComPtr;
 
 /// The Rust side of a custom text analysis source implementation.
-pub trait TextAnalysisSourceImpl {
+pub trait TextAnalysisSourceMethods {
     /// Determine the locale for a range of text.
     ///
     /// Return locale and length of text (in utf-16 code units) for which the
@@ -42,7 +42,7 @@ pub trait TextAnalysisSourceImpl {
 
 pub struct CustomTextAnalysisSourceImpl {
     refcount: AtomicUsize,
-    inner: Box<dyn TextAnalysisSourceImpl>,
+    inner: Box<dyn TextAnalysisSourceMethods>,
     text: Vec<wchar_t>,
     number_subst: NumberSubstitution,
     locale_buf: Vec<wchar_t>,
@@ -78,8 +78,8 @@ impl CustomTextAnalysisSourceImpl {
     ///
     /// Note: this method only supports a single `NumberSubstitution` for the
     /// entire string.
-    pub fn new_native(inner: Box<dyn TextAnalysisSourceImpl>, text: Vec<wchar_t>,
-        number_subst: NumberSubstitution) -> ComPtr<IDWriteTextAnalysisSource>
+    pub fn from_text_and_number_subst_native(inner: Box<dyn TextAnalysisSourceMethods>,
+        text: Vec<wchar_t>, number_subst: NumberSubstitution) -> ComPtr<IDWriteTextAnalysisSource>
     {
         assert!(text.len() <= (std::u32::MAX as usize));
         unsafe {
@@ -194,7 +194,7 @@ impl NumberSubstitution {
                 if ignore_user_overrides { TRUE } else { FALSE },
                 native.getter_addrefs(),
             );
-            assert!(hr == 0, "error creating number substitution");
+            assert_eq!(hr, 0, "error creating number substitution");
             NumberSubstitution {
                 native: UnsafeCell::new(native)
             }

@@ -32,7 +32,7 @@ impl FontFallback {
             let factory2 = factory2?;
             let mut native = null_mut();
             let hr = factory2.GetSystemFontFallback(&mut native);
-            assert!(hr == 0);
+            assert_eq!(hr, 0);
             Some(Self::take(ComPtr::from_ptr(native)))
         }
     }
@@ -77,7 +77,7 @@ impl FontFallback {
                 &mut font,
                 &mut scale,
             );
-            assert!(hr == 0);
+            assert_eq!(hr, 0);
             let mapped_font = if font.is_null() {
                 None
             } else {

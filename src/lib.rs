@@ -97,7 +97,7 @@ mod font_collection_impl; pub use font_collection_impl::CustomFontCollectionLoad
 // This is an implementation of `TextAnalysisSource` for client code.
 mod text_analysis_source_impl;
 pub use text_analysis_source_impl::{CustomTextAnalysisSourceImpl, NumberSubstitution,
-  TextAnalysisSourceImpl
+  TextAnalysisSourceMethods
 };
 
 // This is an internal implementation of `GeometrySink` so that we can
