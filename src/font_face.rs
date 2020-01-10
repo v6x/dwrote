@@ -154,6 +154,10 @@ impl FontFace {
         }
     }
 
+    /// Returns the contents of the OpenType table with the given tag.
+    ///
+    /// NB: The bytes of the tag are reversed! You probably want to use the `u32::swap_bytes()`
+    /// method on the tag value before calling this method.
     pub fn get_font_table(&self, opentype_table_tag: u32) -> Option<Vec<u8>> {
         unsafe {
             let mut table_data_ptr: *const u8 = ptr::null_mut();
