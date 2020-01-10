@@ -15,7 +15,7 @@ use std::sync::atomic::AtomicUsize;
 use winapi::ctypes::wchar_t;
 use winapi::shared::basetsd::UINT32;
 use winapi::shared::guiddef::REFIID;
-use winapi::shared::minwindef::{BOOL, FALSE, TRUE, ULONG};
+use winapi::shared::minwindef::{FALSE, TRUE, ULONG};
 use winapi::shared::winerror::{E_INVALIDARG, S_OK};
 use winapi::um::dwrite::{
     IDWriteNumberSubstitution, IDWriteTextAnalysisSource, IDWriteTextAnalysisSourceVtbl,
@@ -41,8 +41,10 @@ pub trait TextAnalysisSourceMethods {
     fn get_paragraph_reading_direction(&self) -> DWRITE_READING_DIRECTION;
 }
 
+#[repr(C)]
 pub struct CustomTextAnalysisSourceImpl {
-    refcount: AtomicUsize,
+    // NB: This must be the first field.
+    _refcount: AtomicUsize,
     inner: Box<dyn TextAnalysisSourceMethods>,
     text: Vec<wchar_t>,
     number_subst: NumberSubstitution,
@@ -87,7 +89,7 @@ impl CustomTextAnalysisSourceImpl {
         unsafe {
             ComPtr::already_addrefed(
                 CustomTextAnalysisSourceImpl {
-                    refcount: AtomicUsize::new(1),
+                    _refcount: AtomicUsize::new(1),
                     inner,
                     text,
                     number_subst,

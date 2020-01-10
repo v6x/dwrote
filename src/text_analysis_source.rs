@@ -3,11 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cell::UnsafeCell;
-
 use winapi::ctypes::wchar_t;
 use winapi::um::dwrite::IDWriteTextAnalysisSource;
-
-use com_helpers::Com;
 
 use super::*;
 

@@ -175,7 +175,7 @@ struct FontFileStreamPtr(*mut IDWriteFontFileStream);
 
 unsafe impl Send for FontFileStreamPtr {}
 
-static mut FONT_FILE_KEY: atomic::AtomicUsize = atomic::ATOMIC_USIZE_INIT;
+static mut FONT_FILE_KEY: atomic::AtomicUsize = AtomicUsize::new(0);
 
 lazy_static! {
     static ref FONT_FILE_STREAM_MAP: Mutex<HashMap<usize, FontFileStreamPtr>> =

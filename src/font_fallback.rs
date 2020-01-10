@@ -4,11 +4,9 @@
 
 use std::cell::UnsafeCell;
 use std::ptr::null_mut;
-
 use winapi::um::dwrite_2::{IDWriteFactory2, IDWriteFontFallback};
 
 use super::*;
-use helpers::*;
 
 pub struct FontFallback {
     native: UnsafeCell<ComPtr<IDWriteFontFallback>>,

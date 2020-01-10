@@ -95,7 +95,7 @@ fn test_create_font_file_from_bytes() {
     let new_font = FontFile::new_from_data(Arc::new(bytes));
     assert!(new_font.is_some());
 
-    let new_font = new_font.unwrap();
+    let _new_font = new_font.unwrap();
 }
 
 #[test]

@@ -10,7 +10,6 @@ use std::slice;
 use super::{DWriteFactory, DefaultDWriteRenderParams, FontFile, FontMetrics};
 use com_helpers::Com;
 use comptr::ComPtr;
-use font::Font;
 use geometry_sink_impl::GeometrySinkImpl;
 use outline_builder::OutlineBuilder;
 
@@ -20,11 +19,11 @@ use winapi::shared::winerror::S_OK;
 use winapi::um::dcommon::DWRITE_MEASURING_MODE;
 use winapi::um::dwrite::IDWriteRenderingParams;
 use winapi::um::dwrite::DWRITE_FONT_FACE_TYPE_TRUETYPE;
-use winapi::um::dwrite::{IDWriteFont, IDWriteFontCollection, IDWriteFontFace, IDWriteFontFile};
+use winapi::um::dwrite::{IDWriteFontFace, IDWriteFontFile};
 use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_BITMAP, DWRITE_FONT_FACE_TYPE_CFF};
 use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_RAW_CFF, DWRITE_FONT_FACE_TYPE_TYPE1};
 use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_TRUETYPE_COLLECTION, DWRITE_FONT_FACE_TYPE_VECTOR};
-use winapi::um::dwrite::{DWRITE_FONT_METRICS, DWRITE_FONT_SIMULATIONS, DWRITE_GLYPH_METRICS};
+use winapi::um::dwrite::{DWRITE_FONT_SIMULATIONS, DWRITE_GLYPH_METRICS};
 use winapi::um::dwrite::{DWRITE_GLYPH_OFFSET, DWRITE_MATRIX, DWRITE_RENDERING_MODE};
 use winapi::um::dwrite::{DWRITE_RENDERING_MODE_DEFAULT, DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC};
 use winapi::um::dwrite_1::IDWriteFontFace1;
@@ -38,13 +37,8 @@ pub struct FontFace {
 
 impl FontFace {
     pub fn take(native: ComPtr<IDWriteFontFace>) -> FontFace {
-        unsafe {
-            let cell = UnsafeCell::new(native);
-            FontFace {
-                native: cell,
-                face5: UnsafeCell::new(None),
-            }
-        }
+        let cell = UnsafeCell::new(native);
+        FontFace { native: cell, face5: UnsafeCell::new(None) }
     }
 
     pub unsafe fn as_ptr(&self) -> *mut IDWriteFontFace {
@@ -257,7 +251,7 @@ impl FontFace {
         glyph_offsets: Option<&[DWRITE_GLYPH_OFFSET]>,
         is_sideways: bool,
         is_right_to_left: bool,
-        outline_builder: Box<OutlineBuilder>,
+        outline_builder: Box<dyn OutlineBuilder>,
     ) {
         unsafe {
             let glyph_advances = match glyph_advances {

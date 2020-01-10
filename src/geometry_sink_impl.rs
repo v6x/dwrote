@@ -1,22 +1,18 @@
 #![allow(non_snake_case, non_upper_case_globals)]
 
 use std::mem;
-use std::os::raw::c_void;
 use std::slice;
 use std::sync::atomic::AtomicUsize;
 use winapi::shared::guiddef::REFIID;
 use winapi::shared::minwindef::{UINT, ULONG};
 use winapi::shared::winerror::S_OK;
 use winapi::um::d2d1::{ID2D1SimplifiedGeometrySink, ID2D1SimplifiedGeometrySinkVtbl};
-use winapi::um::d2d1::{
-    D2D1_BEZIER_SEGMENT, D2D1_FIGURE_BEGIN, D2D1_FIGURE_END, D2D1_FIGURE_END_CLOSED,
-};
-use winapi::um::d2d1::{D2D1_FILL_MODE, D2D1_PATH_SEGMENT, D2D1_POINT_2F};
+use winapi::um::d2d1::{D2D1_BEZIER_SEGMENT, D2D1_FIGURE_BEGIN, D2D1_FIGURE_END};
+use winapi::um::d2d1::{D2D1_FIGURE_END_CLOSED, D2D1_FILL_MODE, D2D1_PATH_SEGMENT, D2D1_POINT_2F};
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
 
 use com_helpers::{Com, UuidOfIUnknown};
-use comptr::ComPtr;
 use outline_builder::OutlineBuilder;
 
 DEFINE_GUID! {
@@ -37,9 +33,11 @@ static GEOMETRY_SINK_VTBL: ID2D1SimplifiedGeometrySinkVtbl = ID2D1SimplifiedGeom
     SetSegmentFlags: GeometrySinkImpl_SetSegmentFlags,
 };
 
+#[repr(C)]
 pub struct GeometrySinkImpl {
-    refcount: AtomicUsize,
-    outline_builder: Box<OutlineBuilder>,
+    // NB: This must be the first field.
+    _refcount: AtomicUsize,
+    outline_builder: Box<dyn OutlineBuilder>,
 }
 
 impl Com<ID2D1SimplifiedGeometrySink> for GeometrySinkImpl {
@@ -59,9 +57,9 @@ impl Com<IUnknown> for GeometrySinkImpl {
 }
 
 impl GeometrySinkImpl {
-    pub fn new(outline_builder: Box<OutlineBuilder>) -> GeometrySinkImpl {
+    pub fn new(outline_builder: Box<dyn OutlineBuilder>) -> GeometrySinkImpl {
         GeometrySinkImpl {
-            refcount: AtomicUsize::new(1),
+            _refcount: AtomicUsize::new(1),
             outline_builder,
         }
     }

@@ -4,9 +4,7 @@
 
 use std::cell::UnsafeCell;
 use std::ffi::OsString;
-use std::fs::File;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
-use std::os::windows::io::IntoRawHandle;
 use std::path::Path;
 use std::path::PathBuf;
 use std::ptr;
@@ -192,7 +190,7 @@ impl FontFile {
             let hr = (*self.native.get()).GetLoader(loader.getter_addrefs());
             assert!(hr == 0);
 
-            let mut local_loader: ComPtr<IDWriteLocalFontFileLoader> =
+            let local_loader: ComPtr<IDWriteLocalFontFileLoader> =
                 match loader.query_interface(&IDWriteLocalFontFileLoader::uuidof()) {
                     Some(local_loader) => local_loader,
                     None => return None,

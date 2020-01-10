@@ -110,8 +110,8 @@ impl BitmapRenderTarget {
             let height = bitmap.bmHeight as usize;
 
             let mut out_bytes: Vec<u8> = vec![0; width * height * 4];
-            let mut out_u32 =
-                slice::from_raw_parts_mut(out_bytes.as_mut_ptr() as *mut u32, width * height);
+            let out_u32 = slice::from_raw_parts_mut(out_bytes.as_mut_ptr() as *mut u32,
+                                                    width * height);
 
             for row in 0..height {
                 let in_offset = (row * stride) as isize;

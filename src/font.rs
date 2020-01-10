@@ -6,7 +6,7 @@ use std::cell::UnsafeCell;
 
 use comptr::ComPtr;
 use std::mem;
-use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
+use winapi::shared::minwindef::{FALSE, TRUE};
 use winapi::shared::winerror::S_OK;
 use winapi::um::dwrite::IDWriteFont;
 use winapi::um::dwrite::IDWriteFontFace;

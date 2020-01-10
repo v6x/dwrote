@@ -17,39 +17,40 @@ macro_rules! implement_iunknown {
     ($interface:ident, $iuud:ident, $typ:ident) => {
         IUnknownVtbl {
             QueryInterface: {
+                #[allow(non_snake_case)]
                 unsafe extern "system" fn QueryInterface(
-                    This: *mut IUnknown,
+                    unknown_this: *mut IUnknown,
                     riid: REFIID,
-                    ppvObject: *mut *mut c_void,
+                    ppv_object: *mut *mut c_void,
                 ) -> HRESULT {
                     let this = if guid_equals!(*riid, $iuud) {
-                        mem::transmute(This)
+                        mem::transmute(unknown_this)
                     } else if guid_equals!(*riid, UuidOfIUnknown) {
-                        mem::transmute(This)
+                        mem::transmute(unknown_this)
                     } else {
                         return $crate::winapi::shared::winerror::E_NOINTERFACE;
                     };
 
-                    (*This).AddRef();
-                    *ppvObject = this;
+                    (*unknown_this).AddRef();
+                    *ppv_object = this;
                     return S_OK;
                 }
                 QueryInterface
             },
             AddRef: {
-                unsafe extern "system" fn AddRef(This: *mut IUnknown) -> ULONG {
-                    let this = $typ::from_interface(This);
+                unsafe extern "system" fn AddRef(unknown_this: *mut IUnknown) -> ULONG {
+                    let this = $typ::from_interface(unknown_this);
                     let count = this.refcount.fetch_add(1, atomic::Ordering::Relaxed) + 1;
                     count as ULONG
                 }
                 AddRef
             },
             Release: {
-                unsafe extern "system" fn Release(This: *mut IUnknown) -> ULONG {
-                    let this = $typ::from_interface(This);
+                unsafe extern "system" fn Release(unknown_this: *mut IUnknown) -> ULONG {
+                    let this = $typ::from_interface(unknown_this);
                     let count = this.refcount.fetch_sub(1, atomic::Ordering::Release) - 1;
                     if count == 0 {
-                        <$typ as Com<$interface>>::destroy(This as *mut $interface);
+                        <$typ as Com<$interface>>::destroy(unknown_this as *mut $interface);
                     }
                     count as ULONG
                 }
@@ -60,33 +61,37 @@ macro_rules! implement_iunknown {
     (static $interface:ident, $iuud:ident, $typ:ident) => {
         IUnknownVtbl {
             QueryInterface: {
+                #[allow(non_snake_case)]
                 unsafe extern "system" fn QueryInterface(
-                    This: *mut IUnknown,
+                    unknown_this: *mut IUnknown,
                     riid: REFIID,
                     ppvObject: *mut *mut $crate::winapi::ctypes::c_void,
                 ) -> HRESULT {
                     let this = if guid_equals!(*riid, $iuud) {
-                        mem::transmute(This)
+                        mem::transmute(unknown_this)
                     } else if guid_equals!(*riid, UuidOfIUnknown) {
-                        mem::transmute(This)
+                        mem::transmute(unknown_this)
                     } else {
                         return $crate::winapi::shared::winerror::E_NOINTERFACE;
                     };
 
-                    (*This).AddRef();
+                    (*unknown_this).AddRef();
                     *ppvObject = this;
                     return S_OK;
                 }
                 QueryInterface
             },
             AddRef: {
-                unsafe extern "system" fn AddRef(_This: *mut IUnknown) -> ULONG {
+                // FIXME(pcwalton): Uh? Maybe we should actually reference count?
+                #[allow(non_snake_case)]
+                unsafe extern "system" fn AddRef(_: *mut IUnknown) -> ULONG {
                     1
                 }
                 AddRef
             },
             Release: {
-                unsafe extern "system" fn Release(_This: *mut IUnknown) -> ULONG {
+                #[allow(non_snake_case)]
+                unsafe extern "system" fn Release(_: *mut IUnknown) -> ULONG {
                     1
                 }
                 Release

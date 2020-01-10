@@ -39,8 +39,10 @@ static FONT_COLLECTION_LOADER_VTBL: IDWriteFontCollectionLoaderVtbl =
         CreateEnumeratorFromKey: CustomFontCollectionLoaderImpl_CreateEnumeratorFromKey,
     };
 
+#[repr(C)]
 pub struct CustomFontCollectionLoaderImpl {
-    refcount: AtomicUsize,
+    // NB: This must be the first field.
+    _refcount: AtomicUsize,
     font_files: Vec<ComPtr<IDWriteFontFile>>,
 }
 
@@ -65,7 +67,7 @@ impl CustomFontCollectionLoaderImpl {
         unsafe {
             ComPtr::already_addrefed(
                 CustomFontCollectionLoaderImpl {
-                    refcount: AtomicUsize::new(1),
+                    _refcount: AtomicUsize::new(1),
                     font_files: font_files.iter().map(|file| file.as_com_ptr()).collect(),
                 }
                 .into_interface(),
@@ -74,6 +76,7 @@ impl CustomFontCollectionLoaderImpl {
     }
 }
 
+#[allow(non_snake_case)]
 unsafe extern "system" fn CustomFontCollectionLoaderImpl_CreateEnumeratorFromKey(
     this: *mut IDWriteFontCollectionLoader,
     _: *mut IDWriteFactory,
@@ -89,8 +92,10 @@ unsafe extern "system" fn CustomFontCollectionLoaderImpl_CreateEnumeratorFromKey
     S_OK
 }
 
+#[repr(C)]
 struct CustomFontFileEnumeratorImpl {
-    refcount: AtomicUsize,
+    // NB(pcwalton): This must be the first field.
+    _refcount: AtomicUsize,
     font_files: Vec<ComPtr<IDWriteFontFile>>,
     index: isize,
 }
@@ -122,13 +127,14 @@ static FONT_FILE_ENUMERATOR_VTBL: IDWriteFontFileEnumeratorVtbl = IDWriteFontFil
 impl CustomFontFileEnumeratorImpl {
     pub fn new(font_files: Vec<ComPtr<IDWriteFontFile>>) -> CustomFontFileEnumeratorImpl {
         CustomFontFileEnumeratorImpl {
-            refcount: AtomicUsize::new(1),
+            _refcount: AtomicUsize::new(1),
             font_files,
             index: -1,
         }
     }
 }
 
+#[allow(non_snake_case)]
 unsafe extern "system" fn CustomFontFileEnumeratorImpl_GetCurrentFontFile(
     this: *mut IDWriteFontFileEnumerator,
     out_font_file: *mut *mut IDWriteFontFile,
@@ -143,6 +149,7 @@ unsafe extern "system" fn CustomFontFileEnumeratorImpl_GetCurrentFontFile(
     S_OK
 }
 
+#[allow(non_snake_case)]
 unsafe extern "system" fn CustomFontFileEnumeratorImpl_MoveNext(
     this: *mut IDWriteFontFileEnumerator,
     has_current_file: *mut BOOL,

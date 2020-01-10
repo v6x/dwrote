@@ -5,19 +5,16 @@
 use comptr::ComPtr;
 use std::cell::UnsafeCell;
 use std::mem;
-use std::ptr;
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
 use winapi::shared::winerror::S_OK;
 use winapi::um::dwrite::IDWriteFontCollectionLoader;
 use winapi::um::dwrite::{IDWriteFont, IDWriteFontCollection, IDWriteFontFamily};
 
-use super::{CustomFontCollectionLoaderImpl, DWriteFactory, Font, FontFamily};
-use super::{FontDescriptor, FontFace};
-use com_helpers::Com;
 use helpers::*;
+use super::{DWriteFactory, Font, FontDescriptor, FontFace, FontFamily};
 
-static NEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
+static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 
 pub struct FontCollectionFamilyIterator {
     collection: ComPtr<IDWriteFontCollection>,
