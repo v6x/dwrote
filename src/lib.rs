@@ -42,7 +42,8 @@ mod test;
 
 // We still use the DWrite structs for things like metrics; re-export them
 // here
-pub use winapi::um::dwrite::DWRITE_FONT_METRICS as FontMetrics;
+pub use winapi::um::dwrite::DWRITE_FONT_METRICS as FontMetrics0;
+pub use winapi::um::dwrite_1::DWRITE_FONT_METRICS1 as FontMetrics1;
 pub use winapi::um::dwrite::DWRITE_GLYPH_OFFSET as GlyphOffset;
 pub use winapi::um::dwrite::{DWRITE_MATRIX, DWRITE_GLYPH_RUN};
 pub use winapi::um::dwrite::{DWRITE_RENDERING_MODE_DEFAULT,
@@ -74,7 +75,7 @@ use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryW};
 #[macro_use] mod com_helpers;
 
 mod bitmap_render_target; pub use bitmap_render_target::BitmapRenderTarget;
-mod font; pub use font::{Font, InformationalStringId};
+mod font; pub use font::{Font, FontMetrics, InformationalStringId};
 mod font_collection; pub use font_collection::FontCollection;
 mod font_face; pub use font_face::{FontFace, FontFaceType};
 mod font_fallback; pub use font_fallback::{FallbackResult, FontFallback};

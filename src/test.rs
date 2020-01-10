@@ -97,14 +97,17 @@ fn test_glyph_image() {
     let face = arial_font.create_font_face();
     let a_index = face.get_glyph_indices(&['A' as u32])[0];
 
-    let metrics = face.get_metrics();
-
     let gm = face.get_design_glyph_metrics(&[a_index], false)[0];
 
     let device_pixel_ratio = 1.0f32;
     let em_size = 10.0f32;
 
-    let design_units_per_pixel = face.metrics().designUnitsPerEm as f32 / 16. as f32;
+    let design_units_per_em = match face.metrics() {
+        FontMetrics::Metrics0(ref metrics) => metrics.designUnitsPerEm,
+        FontMetrics::Metrics1(ref metrics) => metrics.designUnitsPerEm,
+    };
+    let design_units_per_pixel = design_units_per_em as f32 / 16.;
+
     let scaled_design_units_to_pixels = (em_size * device_pixel_ratio) / design_units_per_pixel;
 
     let width = (gm.advanceWidth as i32 - (gm.leftSideBearing + gm.rightSideBearing)) as f32 * scaled_design_units_to_pixels;
