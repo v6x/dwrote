@@ -10,17 +10,18 @@ use winapi::ctypes::c_void;
 use winapi::shared::guiddef::REFIID;
 use winapi::shared::minwindef::{BOOL, FALSE, TRUE, ULONG};
 use winapi::shared::winerror::{E_INVALIDARG, S_OK};
+use winapi::um::dwrite::IDWriteFactory;
+use winapi::um::dwrite::IDWriteFontCollectionLoader;
+use winapi::um::dwrite::IDWriteFontCollectionLoaderVtbl;
+use winapi::um::dwrite::IDWriteFontFile;
+use winapi::um::dwrite::IDWriteFontFileEnumerator;
 use winapi::um::dwrite::IDWriteFontFileEnumeratorVtbl;
-use winapi::um::dwrite::{IDWriteFactory, IDWriteFontCollectionLoader};
-use winapi::um::dwrite::{
-    IDWriteFontCollectionLoaderVtbl, IDWriteFontFile, IDWriteFontFileEnumerator,
-};
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
 
-use com_helpers::{Com, UuidOfIUnknown};
-use comptr::ComPtr;
-use FontFile;
+use crate::com_helpers::{Com, UuidOfIUnknown};
+use crate::comptr::ComPtr;
+use crate::FontFile;
 
 DEFINE_GUID! {
     DWRITE_FONT_COLLECTION_LOADER_UUID,

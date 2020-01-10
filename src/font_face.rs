@@ -6,13 +6,6 @@ use std::cell::UnsafeCell;
 use std::mem::{self, zeroed};
 use std::ptr;
 use std::slice;
-
-use super::{DWriteFactory, DefaultDWriteRenderParams, FontFile, FontMetrics};
-use com_helpers::Com;
-use comptr::ComPtr;
-use geometry_sink_impl::GeometrySinkImpl;
-use outline_builder::OutlineBuilder;
-
 use winapi::ctypes::c_void;
 use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
 use winapi::shared::winerror::S_OK;
@@ -29,6 +22,12 @@ use winapi::um::dwrite::{DWRITE_RENDERING_MODE_DEFAULT, DWRITE_RENDERING_MODE_NA
 use winapi::um::dwrite_1::IDWriteFontFace1;
 use winapi::um::dwrite_3::{IDWriteFontFace5, IDWriteFontResource, DWRITE_FONT_AXIS_VALUE};
 use winapi::Interface;
+
+use crate::com_helpers::Com;
+use crate::comptr::ComPtr;
+use crate::geometry_sink_impl::GeometrySinkImpl;
+use crate::outline_builder::OutlineBuilder;
+use super::{DWriteFactory, DefaultDWriteRenderParams, FontFile, FontMetrics};
 
 pub struct FontFace {
     native: UnsafeCell<ComPtr<IDWriteFontFace>>,

@@ -3,11 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cell::UnsafeCell;
-use std::ptr;
-
-use super::DWriteFactory;
-use comptr::ComPtr;
 use std::mem;
+use std::ptr;
 use winapi::shared::windef::RECT;
 use winapi::um::dcommon::DWRITE_MEASURING_MODE;
 use winapi::um::dwrite::DWRITE_TEXTURE_CLEARTYPE_3x1;
@@ -15,6 +12,9 @@ use winapi::um::dwrite::IDWriteGlyphRunAnalysis;
 use winapi::um::dwrite::{DWRITE_TEXTURE_ALIASED_1x1, DWRITE_GLYPH_RUN, DWRITE_TEXTURE_TYPE};
 use winapi::um::dwrite::{DWRITE_MATRIX, DWRITE_RENDERING_MODE};
 use winapi::um::winnt::HRESULT;
+
+use crate::comptr::ComPtr;
+use super::DWriteFactory;
 
 pub struct GlyphRunAnalysis {
     native: UnsafeCell<ComPtr<IDWriteGlyphRunAnalysis>>,

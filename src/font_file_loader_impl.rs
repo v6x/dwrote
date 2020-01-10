@@ -16,9 +16,9 @@ use winapi::um::dwrite::{IDWriteFontFileStream, IDWriteFontFileStreamVtbl};
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
 
+use crate::com_helpers::*;
+use crate::comptr::ComPtr;
 use super::DWriteFactory;
-use com_helpers::*;
-use comptr::ComPtr;
 
 struct FontFileLoader;
 

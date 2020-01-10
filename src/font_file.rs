@@ -10,9 +10,6 @@ use std::path::PathBuf;
 use std::ptr;
 use std::slice;
 use std::sync::Arc;
-
-use comptr::ComPtr;
-
 use winapi::ctypes::c_void;
 use winapi::um::dwrite::{IDWriteFontFace, IDWriteFontFile, IDWriteFontFileStream};
 use winapi::um::dwrite::{IDWriteFontFileLoader, IDWriteLocalFontFileLoader};
@@ -21,9 +18,10 @@ use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_UNKNOWN, DWRITE_FONT_SIMULATIONS}
 use winapi::um::winnt::HRESULT;
 use winapi::Interface;
 
+use crate::comptr::ComPtr;
+use crate::font_face::FontFace;
+use crate::font_file_loader_impl::DataFontHelper;
 use super::DWriteFactory;
-use font_face::FontFace;
-use font_file_loader_impl::DataFontHelper;
 
 pub struct FontFile {
     native: UnsafeCell<ComPtr<IDWriteFontFile>>,

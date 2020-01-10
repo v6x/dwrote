@@ -4,11 +4,11 @@
 
 use std::cell::UnsafeCell;
 use std::ptr;
-
-use super::{BitmapRenderTarget, DWriteFactory};
-use comptr::ComPtr;
 use winapi::um::dwrite::IDWriteBitmapRenderTarget;
 use winapi::um::dwrite::IDWriteGdiInterop;
+
+use crate::comptr::ComPtr;
+use super::{BitmapRenderTarget, DWriteFactory};
 
 pub struct GdiInterop {
     native: UnsafeCell<ComPtr<IDWriteGdiInterop>>,

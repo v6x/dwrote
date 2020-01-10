@@ -17,17 +17,18 @@ use winapi::shared::basetsd::UINT32;
 use winapi::shared::guiddef::REFIID;
 use winapi::shared::minwindef::{FALSE, TRUE, ULONG};
 use winapi::shared::winerror::{E_INVALIDARG, S_OK};
-use winapi::um::dwrite::{
-    IDWriteNumberSubstitution, IDWriteTextAnalysisSource, IDWriteTextAnalysisSourceVtbl,
-    DWRITE_NUMBER_SUBSTITUTION_METHOD, DWRITE_READING_DIRECTION,
-};
+use winapi::um::dwrite::DWRITE_NUMBER_SUBSTITUTION_METHOD;
+use winapi::um::dwrite::DWRITE_READING_DIRECTION;
+use winapi::um::dwrite::IDWriteNumberSubstitution;
+use winapi::um::dwrite::IDWriteTextAnalysisSource;
+use winapi::um::dwrite::IDWriteTextAnalysisSourceVtbl;
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
 
+use crate::com_helpers::{Com, UuidOfIUnknown};
+use crate::comptr::ComPtr;
+use crate::helpers::ToWide;
 use super::DWriteFactory;
-use com_helpers::{Com, UuidOfIUnknown};
-use comptr::ComPtr;
-use helpers::ToWide;
 
 /// The Rust side of a custom text analysis source implementation.
 pub trait TextAnalysisSourceMethods {

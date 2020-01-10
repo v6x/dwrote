@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cell::UnsafeCell;
-
-use super::DWriteFactory;
-use comptr::ComPtr;
 use winapi::um::dwrite::IDWriteRenderingParams;
+
+use crate::comptr::ComPtr;
+use super::DWriteFactory;
 
 pub struct RenderingParams {
     native: UnsafeCell<ComPtr<IDWriteRenderingParams>>,

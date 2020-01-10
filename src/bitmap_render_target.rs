@@ -5,15 +5,15 @@
 use std::cell::UnsafeCell;
 use std::mem::{size_of, zeroed};
 use std::slice;
-
-use super::{FontFace, RenderingParams};
-use comptr::ComPtr;
 use winapi::ctypes::c_void;
 use winapi::shared::windef::{HDC, RECT};
 use winapi::um::dcommon::DWRITE_MEASURING_MODE;
 use winapi::um::dwrite::IDWriteBitmapRenderTarget;
 use winapi::um::dwrite::{DWRITE_GLYPH_OFFSET, DWRITE_GLYPH_RUN};
 use winapi::um::wingdi::{GetCurrentObject, GetObjectW, BITMAP, OBJ_BITMAP, RGB};
+
+use crate::comptr::ComPtr;
+use super::{FontFace, RenderingParams};
 
 pub struct BitmapRenderTarget {
     native: UnsafeCell<ComPtr<IDWriteBitmapRenderTarget>>,

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use comptr::ComPtr;
 use std::cell::UnsafeCell;
 use std::mem;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -11,7 +10,8 @@ use winapi::shared::winerror::S_OK;
 use winapi::um::dwrite::IDWriteFontCollectionLoader;
 use winapi::um::dwrite::{IDWriteFont, IDWriteFontCollection, IDWriteFontFamily};
 
-use helpers::*;
+use crate::comptr::ComPtr;
+use crate::helpers::*;
 use super::{DWriteFactory, Font, FontDescriptor, FontFace, FontFamily};
 
 static NEXT_ID: AtomicUsize = AtomicUsize::new(0);

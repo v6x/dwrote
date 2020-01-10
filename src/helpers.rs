@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use comptr::ComPtr;
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 use winapi::ctypes::wchar_t;
@@ -10,6 +9,8 @@ use winapi::shared::minwindef::{BOOL, FALSE};
 use winapi::shared::winerror::S_OK;
 use winapi::um::dwrite::IDWriteLocalizedStrings;
 use winapi::um::winnls::GetUserDefaultLocaleName;
+
+use crate::comptr::ComPtr;
 
 lazy_static! {
     static ref SYSTEM_LOCALE: Vec<wchar_t> = {

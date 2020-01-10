@@ -12,8 +12,8 @@ use winapi::um::d2d1::{D2D1_FIGURE_END_CLOSED, D2D1_FILL_MODE, D2D1_PATH_SEGMENT
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
 
-use com_helpers::{Com, UuidOfIUnknown};
-use outline_builder::OutlineBuilder;
+use crate::com_helpers::{Com, UuidOfIUnknown};
+use crate::outline_builder::OutlineBuilder;
 
 DEFINE_GUID! {
     D2D1_SIMPLIFIED_GEOMETRY_SINK_UUID,
