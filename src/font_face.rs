@@ -28,24 +28,21 @@ use winapi::um::dwrite::{DWRITE_GLYPH_OFFSET, DWRITE_MATRIX, DWRITE_RENDERING_MO
 use winapi::um::dwrite::{DWRITE_RENDERING_MODE_DEFAULT, DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC};
 use winapi::um::dwrite::{IDWriteFontCollection, IDWriteFont, IDWriteFontFace, IDWriteFontFile};
 use winapi::um::dwrite::{IDWriteRenderingParams};
+use winapi::um::dwrite_1::IDWriteFontFace1;
 use winapi::um::dwrite_3::{IDWriteFontFace5, IDWriteFontResource, DWRITE_FONT_AXIS_VALUE};
 
 pub struct FontFace {
     native: UnsafeCell<ComPtr<IDWriteFontFace>>,
     face5: UnsafeCell<Option<ComPtr<IDWriteFontFace5>>>,
-    metrics: FontMetrics,
 }
 
 impl FontFace {
     pub fn take(native: ComPtr<IDWriteFontFace>) -> FontFace {
         unsafe {
-            let mut metrics: FontMetrics = zeroed();
             let cell = UnsafeCell::new(native);
-            (*cell.get()).GetMetrics(&mut metrics);
             FontFace {
                 native: cell,
                 face5: UnsafeCell::new(None),
-                metrics: metrics,
             }
         }
     }
@@ -101,15 +98,22 @@ impl FontFace {
         }
     }
 
-    pub fn metrics(&self) -> &FontMetrics {
-        &self.metrics
-    }
-
-    pub fn get_metrics(&self) -> FontMetrics {
+    pub fn metrics(&self) -> FontMetrics {
         unsafe {
-            let mut metrics: DWRITE_FONT_METRICS = zeroed();
-            (*self.native.get()).GetMetrics(&mut metrics);
-            metrics
+            let font_1: Option<ComPtr<IDWriteFontFace1>> =
+                (*self.native.get()).query_interface(&IDWriteFontFace1::uuidof());
+            match font_1 {
+                None => {
+                    let mut metrics = mem::zeroed();
+                    (*self.native.get()).GetMetrics(&mut metrics);
+                    FontMetrics::Metrics0(metrics)
+                }
+                Some(font_1) => {
+                    let mut metrics_1 = mem::zeroed();
+                    font_1.GetMetrics(&mut metrics_1);
+                    FontMetrics::Metrics1(metrics_1)
+                }
+            }
         }
     }
 
@@ -154,6 +158,10 @@ impl FontFace {
         }
     }
 
+    /// Returns the contents of the OpenType table with the given tag.
+    ///
+    /// NB: The bytes of the tag are reversed! You probably want to use the `u32::swap_bytes()`
+    /// method on the tag value before calling this method.
     pub fn get_font_table(&self, opentype_table_tag: u32) -> Option<Vec<u8>> {
         unsafe {
             let mut table_data_ptr: *const u8 = ptr::null_mut();
@@ -329,7 +337,6 @@ impl Clone for FontFace {
             FontFace {
                 native: UnsafeCell::new((*self.native.get()).clone()),
                 face5: UnsafeCell::new(None),
-                metrics: self.metrics,
             }
         }
     }

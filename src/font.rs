@@ -7,11 +7,16 @@ use std::cell::UnsafeCell;
 use comptr::ComPtr;
 use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
 use winapi::shared::winerror::S_OK;
-use winapi::um::dwrite::{DWRITE_FONT_METRICS, DWRITE_INFORMATIONAL_STRING_FULL_NAME, DWRITE_INFORMATIONAL_STRING_ID};
-use winapi::um::dwrite::{DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_CID_NAME};
-use winapi::um::dwrite::{DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_NAME, IDWriteFontFace};
-use winapi::um::dwrite::{IDWriteLocalizedStrings, IDWriteFont, IDWriteFontFamily};
-use winapi::um::dwrite_1::IDWriteFont1;
+use winapi::um::dwrite::DWRITE_FONT_METRICS;
+use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_FULL_NAME;
+use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_ID;
+use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_CID_NAME;
+use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_NAME;
+use winapi::um::dwrite::IDWriteFont;
+use winapi::um::dwrite::IDWriteFontFace;
+use winapi::um::dwrite::IDWriteFontFamily;
+use winapi::um::dwrite::IDWriteLocalizedStrings;
+use winapi::um::dwrite_1::{DWRITE_FONT_METRICS1, IDWriteFont1};
 use std::mem;
 
 use super::*;
@@ -120,11 +125,22 @@ impl Font {
         }
     }
 
-    pub fn metrics(&self) -> DWRITE_FONT_METRICS {
+    pub fn metrics(&self) -> FontMetrics {
         unsafe {
-            let mut metrics = mem::zeroed();
-            (*self.native.get()).GetMetrics(&mut metrics);
-            metrics
+            let font_1: Option<ComPtr<IDWriteFont1>> =
+                (*self.native.get()).query_interface(&IDWriteFont1::uuidof());
+            match font_1 {
+                None => {
+                    let mut metrics = mem::zeroed();
+                    (*self.native.get()).GetMetrics(&mut metrics);
+                    FontMetrics::Metrics0(metrics)
+                }
+                Some(font_1) => {
+                    let mut metrics_1 = mem::zeroed();
+                    font_1.GetMetrics(&mut metrics_1);
+                    FontMetrics::Metrics1(metrics_1)
+                }
+            }
         }
     }
 }
@@ -146,3 +162,12 @@ pub enum InformationalStringId {
     PostscriptName = DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_NAME,
     PostscriptCidName = DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_CID_NAME,
 }
+
+/// A wrapper around the `DWRITE_FONT_METRICS` and `DWRITE_FONT_METRICS1` types.
+pub enum FontMetrics {
+    /// Windows 7.
+    Metrics0(DWRITE_FONT_METRICS),
+    /// Windows 8 and up.
+    Metrics1(DWRITE_FONT_METRICS1),
+}
+
