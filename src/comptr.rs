@@ -4,9 +4,9 @@
 
 use std::ops::{Deref, DerefMut};
 use std::ptr;
-use winapi::um::unknwnbase::IUnknown;
 use winapi::shared::guiddef::REFIID;
-use winapi::shared::winerror::{S_OK, E_NOINTERFACE};
+use winapi::shared::winerror::{E_NOINTERFACE, S_OK};
+use winapi::um::unknwnbase::IUnknown;
 
 #[derive(Debug)]
 pub struct ComPtr<T> {
@@ -15,7 +15,9 @@ pub struct ComPtr<T> {
 
 impl<T> ComPtr<T> {
     pub fn new() -> Self {
-        ComPtr { ptr: ptr::null_mut() }
+        ComPtr {
+            ptr: ptr::null_mut(),
+        }
     }
 
     pub fn from_ptr(ptr: *mut T) -> Self {

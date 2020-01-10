@@ -17,16 +17,17 @@ use winapi::shared::basetsd::UINT32;
 use winapi::shared::guiddef::REFIID;
 use winapi::shared::minwindef::{BOOL, FALSE, TRUE, ULONG};
 use winapi::shared::winerror::{E_INVALIDARG, S_OK};
-use winapi::um::dwrite::{DWRITE_NUMBER_SUBSTITUTION_METHOD, DWRITE_READING_DIRECTION,
+use winapi::um::dwrite::{
     IDWriteNumberSubstitution, IDWriteTextAnalysisSource, IDWriteTextAnalysisSourceVtbl,
+    DWRITE_NUMBER_SUBSTITUTION_METHOD, DWRITE_READING_DIRECTION,
 };
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
 
-use helpers::ToWide;
 use super::DWriteFactory;
 use com_helpers::{Com, UuidOfIUnknown};
 use comptr::ComPtr;
+use helpers::ToWide;
 
 /// The Rust side of a custom text analysis source implementation.
 pub trait TextAnalysisSourceMethods {
@@ -60,8 +61,7 @@ DEFINE_GUID! {
     0x12345678, 0x1234, 0x5678, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0
 }
 
-static TEXT_ANALYSIS_SOURCE_VTBL: IDWriteTextAnalysisSourceVtbl =
-        IDWriteTextAnalysisSourceVtbl {
+static TEXT_ANALYSIS_SOURCE_VTBL: IDWriteTextAnalysisSourceVtbl = IDWriteTextAnalysisSourceVtbl {
     parent: implement_iunknown!(static IDWriteTextAnalysisSource,
                                 DWRITE_TEXT_ANALYSIS_SOURCE_UUID,
                                 CustomTextAnalysisSourceImpl),
@@ -78,18 +78,23 @@ impl CustomTextAnalysisSourceImpl {
     ///
     /// Note: this method only supports a single `NumberSubstitution` for the
     /// entire string.
-    pub fn from_text_and_number_subst_native(inner: Box<dyn TextAnalysisSourceMethods>,
-        text: Vec<wchar_t>, number_subst: NumberSubstitution) -> ComPtr<IDWriteTextAnalysisSource>
-    {
+    pub fn from_text_and_number_subst_native(
+        inner: Box<dyn TextAnalysisSourceMethods>,
+        text: Vec<wchar_t>,
+        number_subst: NumberSubstitution,
+    ) -> ComPtr<IDWriteTextAnalysisSource> {
         assert!(text.len() <= (std::u32::MAX as usize));
         unsafe {
-            ComPtr::already_addrefed(CustomTextAnalysisSourceImpl {
-                refcount: AtomicUsize::new(1),
-                inner,
-                text,
-                number_subst,
-                locale_buf: Vec::new(),
-            }.into_interface())
+            ComPtr::already_addrefed(
+                CustomTextAnalysisSourceImpl {
+                    refcount: AtomicUsize::new(1),
+                    inner,
+                    text,
+                    number_subst,
+                    locale_buf: Vec::new(),
+                }
+                .into_interface(),
+            )
         }
     }
 }
@@ -111,11 +116,11 @@ impl Com<IUnknown> for CustomTextAnalysisSourceImpl {
 }
 
 unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetLocaleName(
-        this: *mut IDWriteTextAnalysisSource,
-        text_position: UINT32,
-        text_length: *mut UINT32,
-        locale_name: *mut *const wchar_t)
-        -> HRESULT {
+    this: *mut IDWriteTextAnalysisSource,
+    text_position: UINT32,
+    text_length: *mut UINT32,
+    locale_name: *mut *const wchar_t,
+) -> HRESULT {
     let this = CustomTextAnalysisSourceImpl::from_interface(this);
     let (locale, text_len) = this.inner.get_locale_name(text_position);
     // TODO(performance): reuse buffer (and maybe use smallvec)
@@ -126,11 +131,11 @@ unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetLocaleName(
 }
 
 unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetNumberSubstitution(
-        this: *mut IDWriteTextAnalysisSource,
-        text_position: UINT32,
-        text_length: *mut UINT32,
-        number_substitution: *mut *mut IDWriteNumberSubstitution)
-        -> HRESULT {
+    this: *mut IDWriteTextAnalysisSource,
+    text_position: UINT32,
+    text_length: *mut UINT32,
+    number_substitution: *mut *mut IDWriteNumberSubstitution,
+) -> HRESULT {
     let this = CustomTextAnalysisSourceImpl::from_interface(this);
     if text_position >= (this.text.len() as u32) {
         return E_INVALIDARG;
@@ -142,18 +147,18 @@ unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetNumberSubstitution(
 }
 
 unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetParagraphReadingDirection(
-        this: *mut IDWriteTextAnalysisSource)
-        -> DWRITE_READING_DIRECTION {
+    this: *mut IDWriteTextAnalysisSource,
+) -> DWRITE_READING_DIRECTION {
     let this = CustomTextAnalysisSourceImpl::from_interface(this);
     this.inner.get_paragraph_reading_direction()
 }
 
 unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetTextAtPosition(
-        this: *mut IDWriteTextAnalysisSource,
-        text_position: UINT32,
-        text_string: *mut *const wchar_t,
-        text_length: *mut UINT32)
-        -> HRESULT {
+    this: *mut IDWriteTextAnalysisSource,
+    text_position: UINT32,
+    text_string: *mut *const wchar_t,
+    text_length: *mut UINT32,
+) -> HRESULT {
     let this = CustomTextAnalysisSourceImpl::from_interface(this);
     if text_position >= (this.text.len() as u32) {
         *text_string = null();
@@ -166,11 +171,11 @@ unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetTextAtPosition(
 }
 
 unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetTextBeforePosition(
-        this: *mut IDWriteTextAnalysisSource,
-        text_position: UINT32,
-        text_string: *mut *const wchar_t,
-        text_length: *mut UINT32)
-        -> HRESULT {
+    this: *mut IDWriteTextAnalysisSource,
+    text_position: UINT32,
+    text_string: *mut *const wchar_t,
+    text_length: *mut UINT32,
+) -> HRESULT {
     let this = CustomTextAnalysisSourceImpl::from_interface(this);
     if text_position == 0 || text_position > (this.text.len() as u32) {
         *text_string = null();
@@ -183,9 +188,11 @@ unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetTextBeforePosition(
 }
 
 impl NumberSubstitution {
-    pub fn new(subst_method: DWRITE_NUMBER_SUBSTITUTION_METHOD, locale: &str,
-        ignore_user_overrides: bool) -> NumberSubstitution
-    {
+    pub fn new(
+        subst_method: DWRITE_NUMBER_SUBSTITUTION_METHOD,
+        locale: &str,
+        ignore_user_overrides: bool,
+    ) -> NumberSubstitution {
         unsafe {
             let mut native: ComPtr<IDWriteNumberSubstitution> = ComPtr::new();
             let hr = (*DWriteFactory()).CreateNumberSubstitution(
@@ -196,7 +203,7 @@ impl NumberSubstitution {
             );
             assert_eq!(hr, 0, "error creating number substitution");
             NumberSubstitution {
-                native: UnsafeCell::new(native)
+                native: UnsafeCell::new(native),
             }
         }
     }

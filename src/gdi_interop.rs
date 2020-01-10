@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::ptr;
 use std::cell::UnsafeCell;
+use std::ptr;
 
+use super::{BitmapRenderTarget, DWriteFactory};
 use comptr::ComPtr;
 use winapi::um::dwrite::IDWriteBitmapRenderTarget;
 use winapi::um::dwrite::IDWriteGdiInterop;
-use super::{DWriteFactory, BitmapRenderTarget};
 
 pub struct GdiInterop {
     native: UnsafeCell<ComPtr<IDWriteGdiInterop>>,
@@ -33,9 +33,12 @@ impl GdiInterop {
     pub fn create_bitmap_render_target(&self, width: u32, height: u32) -> BitmapRenderTarget {
         unsafe {
             let mut native: ComPtr<IDWriteBitmapRenderTarget> = ComPtr::new();
-            let hr = (*self.native.get()).CreateBitmapRenderTarget(ptr::null_mut(),
-                                                                   width, height,
-                                                                   native.getter_addrefs());
+            let hr = (*self.native.get()).CreateBitmapRenderTarget(
+                ptr::null_mut(),
+                width,
+                height,
+                native.getter_addrefs(),
+            );
             assert!(hr == 0);
             BitmapRenderTarget::take(native)
         }

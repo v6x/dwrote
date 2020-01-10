@@ -5,8 +5,8 @@
 use std::cell::UnsafeCell;
 
 use comptr::ComPtr;
-use winapi::um::dwrite::{IDWriteFont, IDWriteFontFamily, IDWriteFontCollection};
-use winapi::um::dwrite::{IDWriteLocalizedStrings};
+use winapi::um::dwrite::IDWriteLocalizedStrings;
+use winapi::um::dwrite::{IDWriteFont, IDWriteFontCollection, IDWriteFontFamily};
 
 use super::*;
 use helpers::*;
@@ -18,7 +18,7 @@ pub struct FontFamily {
 impl FontFamily {
     pub fn take(native: ComPtr<IDWriteFontFamily>) -> FontFamily {
         FontFamily {
-            native: UnsafeCell::new(native)
+            native: UnsafeCell::new(native),
         }
     }
 
@@ -36,15 +36,20 @@ impl FontFamily {
         }
     }
 
-    pub fn get_first_matching_font(&self,
-                                   weight: FontWeight,
-                                   stretch: FontStretch,
-                                   style: FontStyle)
-        -> Font
-    {
+    pub fn get_first_matching_font(
+        &self,
+        weight: FontWeight,
+        stretch: FontStretch,
+        style: FontStyle,
+    ) -> Font {
         unsafe {
             let mut font: ComPtr<IDWriteFont> = ComPtr::new();
-            let hr = (*self.native.get()).GetFirstMatchingFont(weight.t(), stretch.t(), style.t(), font.getter_addrefs());
+            let hr = (*self.native.get()).GetFirstMatchingFont(
+                weight.t(),
+                stretch.t(),
+                style.t(),
+                font.getter_addrefs(),
+            );
             assert!(hr == 0);
             Font::take(font)
         }
@@ -60,9 +65,7 @@ impl FontFamily {
     }
 
     pub fn get_font_count(&self) -> u32 {
-        unsafe {
-            (*self.native.get()).GetFontCount()
-        }
+        unsafe { (*self.native.get()).GetFontCount() }
     }
 
     pub fn get_font(&self, index: u32) -> Font {

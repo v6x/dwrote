@@ -50,16 +50,16 @@ impl FontFallback {
 
     // TODO: map_characters (main function)
     pub fn map_characters(
-            &self,
-            text_analysis_source: &TextAnalysisSource,
-            text_position: u32,
-            text_length: u32,
-            base_font: &FontCollection,
-            base_family: Option<&str>,
-            base_weight: FontWeight,
-            base_style: FontStyle,
-            base_stretch: FontStretch)
-            -> FallbackResult {
+        &self,
+        text_analysis_source: &TextAnalysisSource,
+        text_position: u32,
+        text_length: u32,
+        base_font: &FontCollection,
+        base_family: Option<&str>,
+        base_weight: FontWeight,
+        base_style: FontStyle,
+        base_stretch: FontStretch,
+    ) -> FallbackResult {
         unsafe {
             let mut font = null_mut();
             let mut mapped_length = 0;
@@ -69,7 +69,9 @@ impl FontFallback {
                 text_position,
                 text_length,
                 base_font.as_ptr(),
-                base_family.map(|s| s.to_wide_null().as_mut_ptr()).unwrap_or(null_mut()),
+                base_family
+                    .map(|s| s.to_wide_null().as_mut_ptr())
+                    .unwrap_or(null_mut()),
                 base_weight.t(),
                 base_style.t(),
                 base_stretch.t(),
@@ -86,7 +88,7 @@ impl FontFallback {
             FallbackResult {
                 mapped_length: mapped_length as usize,
                 mapped_font,
-                scale
+                scale,
             }
         }
     }

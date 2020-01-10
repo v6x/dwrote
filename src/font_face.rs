@@ -2,34 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::slice;
-use std::ptr;
 use std::cell::UnsafeCell;
 use std::mem::{self, zeroed};
+use std::ptr;
+use std::slice;
 
+use super::{DWriteFactory, DefaultDWriteRenderParams, FontFile, FontMetrics};
 use com_helpers::Com;
 use comptr::ComPtr;
 use font::Font;
 use geometry_sink_impl::GeometrySinkImpl;
 use outline_builder::OutlineBuilder;
-use super::{FontMetrics, FontFile, DefaultDWriteRenderParams, DWriteFactory};
 
-use winapi::Interface;
 use winapi::ctypes::c_void;
 use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
 use winapi::shared::winerror::S_OK;
 use winapi::um::dcommon::DWRITE_MEASURING_MODE;
+use winapi::um::dwrite::IDWriteRenderingParams;
+use winapi::um::dwrite::DWRITE_FONT_FACE_TYPE_TRUETYPE;
+use winapi::um::dwrite::{IDWriteFont, IDWriteFontCollection, IDWriteFontFace, IDWriteFontFile};
 use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_BITMAP, DWRITE_FONT_FACE_TYPE_CFF};
 use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_RAW_CFF, DWRITE_FONT_FACE_TYPE_TYPE1};
-use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_TRUETYPE};
 use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_TRUETYPE_COLLECTION, DWRITE_FONT_FACE_TYPE_VECTOR};
 use winapi::um::dwrite::{DWRITE_FONT_METRICS, DWRITE_FONT_SIMULATIONS, DWRITE_GLYPH_METRICS};
 use winapi::um::dwrite::{DWRITE_GLYPH_OFFSET, DWRITE_MATRIX, DWRITE_RENDERING_MODE};
 use winapi::um::dwrite::{DWRITE_RENDERING_MODE_DEFAULT, DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC};
-use winapi::um::dwrite::{IDWriteFontCollection, IDWriteFont, IDWriteFontFace, IDWriteFontFile};
-use winapi::um::dwrite::{IDWriteRenderingParams};
 use winapi::um::dwrite_1::IDWriteFontFace1;
 use winapi::um::dwrite_3::{IDWriteFontFace5, IDWriteFontResource, DWRITE_FONT_AXIS_VALUE};
+use winapi::Interface;
 
 pub struct FontFace {
     native: UnsafeCell<ComPtr<IDWriteFontFace>>,
@@ -66,11 +66,17 @@ impl FontFace {
     pub fn get_files(&self) -> Vec<FontFile> {
         unsafe {
             let file_ptrs = self.get_raw_files();
-            file_ptrs.iter().map(|p| FontFile::take(ComPtr::from_ptr(*p))).collect()
+            file_ptrs
+                .iter()
+                .map(|p| FontFile::take(ComPtr::from_ptr(*p)))
+                .collect()
         }
     }
 
-    pub fn create_font_face_with_simulations(&self, simulations: DWRITE_FONT_SIMULATIONS) -> FontFace {
+    pub fn create_font_face_with_simulations(
+        &self,
+        simulations: DWRITE_FONT_SIMULATIONS,
+    ) -> FontFace {
         unsafe {
             let file_ptrs = self.get_raw_files();
             let face_type = (*self.native.get()).GetType();
@@ -82,7 +88,7 @@ impl FontFace {
                 file_ptrs.as_ptr(),
                 face_index,
                 simulations,
-                face.getter_addrefs()
+                face.getter_addrefs(),
             );
             for p in file_ptrs {
                 let _ = ComPtr::<IDWriteFontFile>::already_addrefed(p);
@@ -93,9 +99,7 @@ impl FontFace {
     }
 
     pub fn get_glyph_count(&self) -> u16 {
-        unsafe {
-            (*self.native.get()).GetGlyphCount()
-        }
+        unsafe { (*self.native.get()).GetGlyphCount() }
     }
 
     pub fn metrics(&self) -> FontMetrics {
@@ -120,39 +124,55 @@ impl FontFace {
     pub fn get_glyph_indices(&self, code_points: &[u32]) -> Vec<u16> {
         unsafe {
             let mut glyph_indices: Vec<u16> = vec![0; code_points.len()];
-            let hr = (*self.native.get()).GetGlyphIndices(code_points.as_ptr(),
-                                                          code_points.len() as u32,
-                                                          glyph_indices.as_mut_ptr());
+            let hr = (*self.native.get()).GetGlyphIndices(
+                code_points.as_ptr(),
+                code_points.len() as u32,
+                glyph_indices.as_mut_ptr(),
+            );
             assert!(hr == 0);
             glyph_indices
         }
     }
 
-    pub fn get_design_glyph_metrics(&self, glyph_indices: &[u16], is_sideways: bool) -> Vec<DWRITE_GLYPH_METRICS> {
+    pub fn get_design_glyph_metrics(
+        &self,
+        glyph_indices: &[u16],
+        is_sideways: bool,
+    ) -> Vec<DWRITE_GLYPH_METRICS> {
         unsafe {
             let mut metrics: Vec<DWRITE_GLYPH_METRICS> = vec![zeroed(); glyph_indices.len()];
-            let hr = (*self.native.get()).GetDesignGlyphMetrics(glyph_indices.as_ptr(),
-                                                                glyph_indices.len() as u32,
-                                                                metrics.as_mut_ptr(),
-                                                                is_sideways as BOOL);
+            let hr = (*self.native.get()).GetDesignGlyphMetrics(
+                glyph_indices.as_ptr(),
+                glyph_indices.len() as u32,
+                metrics.as_mut_ptr(),
+                is_sideways as BOOL,
+            );
             assert!(hr == 0);
             metrics
         }
     }
 
-    pub fn get_gdi_compatible_glyph_metrics(&self, em_size: f32, pixels_per_dip: f32, transform: *const DWRITE_MATRIX,
-                                            use_gdi_natural: bool, glyph_indices: &[u16], is_sideways: bool)
-                                            -> Vec<DWRITE_GLYPH_METRICS>
-    {
+    pub fn get_gdi_compatible_glyph_metrics(
+        &self,
+        em_size: f32,
+        pixels_per_dip: f32,
+        transform: *const DWRITE_MATRIX,
+        use_gdi_natural: bool,
+        glyph_indices: &[u16],
+        is_sideways: bool,
+    ) -> Vec<DWRITE_GLYPH_METRICS> {
         unsafe {
             let mut metrics: Vec<DWRITE_GLYPH_METRICS> = vec![zeroed(); glyph_indices.len()];
-            let hr = (*self.native.get()).GetGdiCompatibleGlyphMetrics(em_size, pixels_per_dip,
-                                                                       transform,
-                                                                       use_gdi_natural as BOOL,
-                                                                       glyph_indices.as_ptr(),
-                                                                       glyph_indices.len() as u32,
-                                                                       metrics.as_mut_ptr(),
-                                                                       is_sideways as BOOL);
+            let hr = (*self.native.get()).GetGdiCompatibleGlyphMetrics(
+                em_size,
+                pixels_per_dip,
+                transform,
+                use_gdi_natural as BOOL,
+                glyph_indices.as_ptr(),
+                glyph_indices.len() as u32,
+                metrics.as_mut_ptr(),
+                is_sideways as BOOL,
+            );
             assert!(hr == 0);
             metrics
         }
@@ -169,11 +189,13 @@ impl FontFace {
             let mut table_context: *mut c_void = ptr::null_mut();
             let mut exists: BOOL = FALSE;
 
-            let hr = (*self.native.get()).TryGetFontTable(opentype_table_tag,
-                                                          &mut table_data_ptr as *mut *const _ as *mut *const c_void,
-                                                          &mut table_size,
-                                                          &mut table_context,
-                                                          &mut exists);
+            let hr = (*self.native.get()).TryGetFontTable(
+                opentype_table_tag,
+                &mut table_data_ptr as *mut *const _ as *mut *const c_void,
+                &mut table_size,
+                &mut table_context,
+                &mut exists,
+            );
             assert!(hr == 0);
 
             if exists == FALSE {
@@ -188,47 +210,55 @@ impl FontFace {
         }
     }
 
-    pub fn get_recommended_rendering_mode(&self,
-                                          em_size: f32,
-                                          pixels_per_dip: f32,
-                                          measure_mode: DWRITE_MEASURING_MODE,
-                                          rendering_params: *mut IDWriteRenderingParams) ->
-                                          DWRITE_RENDERING_MODE {
-      unsafe {
-        let mut render_mode : DWRITE_RENDERING_MODE = DWRITE_RENDERING_MODE_DEFAULT;
-        let hr = (*self.native.get()).GetRecommendedRenderingMode(em_size,
-                                                                  pixels_per_dip,
-                                                                  measure_mode,
-                                                                  rendering_params,
-                                                                  &mut render_mode);
+    pub fn get_recommended_rendering_mode(
+        &self,
+        em_size: f32,
+        pixels_per_dip: f32,
+        measure_mode: DWRITE_MEASURING_MODE,
+        rendering_params: *mut IDWriteRenderingParams,
+    ) -> DWRITE_RENDERING_MODE {
+        unsafe {
+            let mut render_mode: DWRITE_RENDERING_MODE = DWRITE_RENDERING_MODE_DEFAULT;
+            let hr = (*self.native.get()).GetRecommendedRenderingMode(
+                em_size,
+                pixels_per_dip,
+                measure_mode,
+                rendering_params,
+                &mut render_mode,
+            );
 
-        if hr != 0 {
-          return DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC;
+            if hr != 0 {
+                return DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC;
+            }
+
+            render_mode
         }
-
-        render_mode
-      }
     }
 
-    pub fn get_recommended_rendering_mode_default_params(&self,
-                                                        em_size: f32,
-                                                        pixels_per_dip: f32,
-                                                        measure_mode: DWRITE_MEASURING_MODE) ->
-                                                        DWRITE_RENDERING_MODE {
-      self.get_recommended_rendering_mode(em_size,
-                                          pixels_per_dip,
-                                          measure_mode,
-                                          DefaultDWriteRenderParams())
+    pub fn get_recommended_rendering_mode_default_params(
+        &self,
+        em_size: f32,
+        pixels_per_dip: f32,
+        measure_mode: DWRITE_MEASURING_MODE,
+    ) -> DWRITE_RENDERING_MODE {
+        self.get_recommended_rendering_mode(
+            em_size,
+            pixels_per_dip,
+            measure_mode,
+            DefaultDWriteRenderParams(),
+        )
     }
 
-    pub fn get_glyph_run_outline(&self,
-                                 em_size: f32,
-                                 glyph_indices: &[u16],
-                                 glyph_advances: Option<&[f32]>,
-                                 glyph_offsets: Option<&[DWRITE_GLYPH_OFFSET]>,
-                                 is_sideways: bool,
-                                 is_right_to_left: bool,
-                                 outline_builder: Box<OutlineBuilder>) {
+    pub fn get_glyph_run_outline(
+        &self,
+        em_size: f32,
+        glyph_indices: &[u16],
+        glyph_advances: Option<&[f32]>,
+        glyph_offsets: Option<&[DWRITE_GLYPH_OFFSET]>,
+        is_sideways: bool,
+        is_right_to_left: bool,
+        outline_builder: Box<OutlineBuilder>,
+    ) {
         unsafe {
             let glyph_advances = match glyph_advances {
                 None => ptr::null(),
@@ -248,14 +278,16 @@ impl FontFace {
             let is_right_to_left = if is_right_to_left { TRUE } else { FALSE };
             let geometry_sink = GeometrySinkImpl::new(outline_builder);
             let geometry_sink = geometry_sink.into_interface();
-            let hr = (*self.native.get()).GetGlyphRunOutline(em_size,
-                                                            glyph_indices.as_ptr(),
-                                                            glyph_advances,
-                                                            glyph_offsets,
-                                                            glyph_indices.len() as u32,
-                                                            is_sideways,
-                                                            is_right_to_left,
-                                                            geometry_sink);
+            let hr = (*self.native.get()).GetGlyphRunOutline(
+                em_size,
+                glyph_indices.as_ptr(),
+                glyph_advances,
+                glyph_offsets,
+                glyph_indices.len() as u32,
+                is_sideways,
+                is_right_to_left,
+                geometry_sink,
+            );
             assert_eq!(hr, S_OK);
         }
     }
@@ -278,9 +310,7 @@ impl FontFace {
 
     #[inline]
     pub fn get_index(&self) -> u32 {
-        unsafe {
-            (*self.native.get()).GetIndex()
-        }
+        unsafe { (*self.native.get()).GetIndex() }
     }
 
     #[inline]

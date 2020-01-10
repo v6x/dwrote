@@ -5,19 +5,19 @@
 use std::cell::UnsafeCell;
 
 use comptr::ComPtr;
+use std::mem;
 use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
 use winapi::shared::winerror::S_OK;
+use winapi::um::dwrite::IDWriteFont;
+use winapi::um::dwrite::IDWriteFontFace;
+use winapi::um::dwrite::IDWriteFontFamily;
+use winapi::um::dwrite::IDWriteLocalizedStrings;
 use winapi::um::dwrite::DWRITE_FONT_METRICS;
 use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_FULL_NAME;
 use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_ID;
 use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_CID_NAME;
 use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_NAME;
-use winapi::um::dwrite::IDWriteFont;
-use winapi::um::dwrite::IDWriteFontFace;
-use winapi::um::dwrite::IDWriteFontFamily;
-use winapi::um::dwrite::IDWriteLocalizedStrings;
-use winapi::um::dwrite_1::{DWRITE_FONT_METRICS1, IDWriteFont1};
-use std::mem;
+use winapi::um::dwrite_1::{IDWriteFont1, DWRITE_FONT_METRICS1};
 
 use super::*;
 use helpers::*;
@@ -47,34 +47,27 @@ impl Font {
     }
 
     pub fn stretch(&self) -> FontStretch {
-        unsafe {
-            mem::transmute::<u32, FontStretch>((*self.native.get()).GetStretch())
-        }
+        unsafe { mem::transmute::<u32, FontStretch>((*self.native.get()).GetStretch()) }
     }
 
     pub fn style(&self) -> FontStyle {
-        unsafe {
-            mem::transmute::<u32, FontStyle>((*self.native.get()).GetStyle())
-        }
+        unsafe { mem::transmute::<u32, FontStyle>((*self.native.get()).GetStyle()) }
     }
 
     pub fn weight(&self) -> FontWeight {
-        unsafe {
-            FontWeight::from_u32((*self.native.get()).GetWeight())
-        }
+        unsafe { FontWeight::from_u32((*self.native.get()).GetWeight()) }
     }
 
     pub fn is_monospace(&self) -> Option<bool> {
         unsafe {
-            let font1: Option<ComPtr<IDWriteFont1>> = (*self.native.get()).query_interface(&IDWriteFont1::uuidof());
+            let font1: Option<ComPtr<IDWriteFont1>> =
+                (*self.native.get()).query_interface(&IDWriteFont1::uuidof());
             font1.map(|font| font.IsMonospacedFont() == TRUE)
         }
     }
 
     pub fn simulations(&self) -> FontSimulations {
-        unsafe {
-            mem::transmute::<u32, FontSimulations>((*self.native.get()).GetSimulations())
-        }
+        unsafe { mem::transmute::<u32, FontSimulations>((*self.native.get()).GetSimulations()) }
     }
 
     pub fn family_name(&self) -> String {
@@ -102,9 +95,11 @@ impl Font {
             let mut names: ComPtr<IDWriteLocalizedStrings> = ComPtr::new();
             let mut exists = FALSE;
             let id = id as DWRITE_INFORMATIONAL_STRING_ID;
-            let hr = (*self.native.get()).GetInformationalStrings(id,
-                                                                  names.getter_addrefs(),
-                                                                  &mut exists);
+            let hr = (*self.native.get()).GetInformationalStrings(
+                id,
+                names.getter_addrefs(),
+                &mut exists,
+            );
             assert!(hr == S_OK);
             if exists == TRUE {
                 Some(get_locale_string(&mut names))
@@ -170,4 +165,3 @@ pub enum FontMetrics {
     /// Windows 8 and up.
     Metrics1(DWRITE_FONT_METRICS1),
 }
-

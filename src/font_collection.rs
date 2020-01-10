@@ -3,19 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use comptr::ComPtr;
-use winapi::um::dwrite::{IDWriteFontFamily, IDWriteFont, IDWriteFontCollection};
-use winapi::um::dwrite::{IDWriteFontCollectionLoader};
-use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
-use winapi::shared::winerror::S_OK;
 use std::cell::UnsafeCell;
 use std::mem;
 use std::ptr;
-use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
+use winapi::shared::winerror::S_OK;
+use winapi::um::dwrite::IDWriteFontCollectionLoader;
+use winapi::um::dwrite::{IDWriteFont, IDWriteFontCollection, IDWriteFontFamily};
 
-use super::{CustomFontCollectionLoaderImpl, DWriteFactory, FontFamily, Font};
-use super::{FontFace, FontDescriptor};
-use helpers::*;
+use super::{CustomFontCollectionLoaderImpl, DWriteFactory, Font, FontFamily};
+use super::{FontDescriptor, FontFace};
 use com_helpers::Com;
+use helpers::*;
 
 static NEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 
@@ -34,7 +34,9 @@ impl Iterator for FontCollectionFamilyIterator {
 
         unsafe {
             let mut family: ComPtr<IDWriteFontFamily> = ComPtr::new();
-            let hr = self.collection.GetFontFamily(self.curr, family.getter_addrefs());
+            let hr = self
+                .collection
+                .GetFontFamily(self.curr, family.getter_addrefs());
             assert!(hr == 0);
             self.curr += 1;
             Some(FontFamily::take(family))
@@ -57,7 +59,7 @@ impl FontCollection {
             assert!(hr == 0);
 
             FontCollection {
-                native: UnsafeCell::new(native)
+                native: UnsafeCell::new(native),
             }
         }
     }
@@ -68,23 +70,28 @@ impl FontCollection {
 
     pub fn take(native: ComPtr<IDWriteFontCollection>) -> FontCollection {
         FontCollection {
-            native: UnsafeCell::new(native)
+            native: UnsafeCell::new(native),
         }
     }
 
     pub fn from_loader(collection_loader: ComPtr<IDWriteFontCollectionLoader>) -> FontCollection {
         unsafe {
             let factory = DWriteFactory();
-            assert_eq!((*factory).RegisterFontCollectionLoader(collection_loader.clone().forget()),
-                       S_OK);
+            assert_eq!(
+                (*factory).RegisterFontCollectionLoader(collection_loader.clone().forget()),
+                S_OK
+            );
             let mut collection: ComPtr<IDWriteFontCollection> = ComPtr::new();
             let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
-            assert_eq!((*factory).CreateCustomFontCollection(
-                            collection_loader.clone().forget(),
-                            &id as *const usize as *const _,
-                            mem::size_of::<AtomicUsize>() as u32,
-                            collection.getter_addrefs()),
-                       S_OK);
+            assert_eq!(
+                (*factory).CreateCustomFontCollection(
+                    collection_loader.clone().forget(),
+                    &id as *const usize as *const _,
+                    mem::size_of::<AtomicUsize>() as u32,
+                    collection.getter_addrefs()
+                ),
+                S_OK
+            );
             FontCollection::take(collection)
         }
     }
@@ -104,9 +111,7 @@ impl FontCollection {
     }
 
     pub fn get_font_family_count(&self) -> u32 {
-        unsafe {
-            (*self.native.get()).GetFontFamilyCount()
-        }
+        unsafe { (*self.native.get()).GetFontFamilyCount() }
     }
 
     pub fn get_font_family(&self, index: u32) -> FontFamily {
@@ -119,14 +124,14 @@ impl FontCollection {
     }
 
     // Find a font matching the given font descriptor in this
-    // font collection.  
+    // font collection.
     pub fn get_font_from_descriptor(&self, desc: &FontDescriptor) -> Option<Font> {
         if let Some(family) = self.get_font_family_by_name(&desc.family_name) {
             let font = family.get_first_matching_font(desc.weight, desc.stretch, desc.style);
             // Exact matches only here
-            if font.weight() == desc.weight &&
-                font.stretch() == desc.stretch &&
-                font.style() == desc.style
+            if font.weight() == desc.weight
+                && font.stretch() == desc.stretch
+                && font.style() == desc.style
             {
                 return Some(font);
             }
@@ -150,7 +155,11 @@ impl FontCollection {
         unsafe {
             let mut index: u32 = 0;
             let mut exists: BOOL = FALSE;
-            let hr = (*self.native.get()).FindFamilyName(family_name.to_wide_null().as_ptr(), &mut index, &mut exists);
+            let hr = (*self.native.get()).FindFamilyName(
+                family_name.to_wide_null().as_ptr(),
+                &mut index,
+                &mut exists,
+            );
             assert!(hr == 0);
             if exists == FALSE {
                 return None;
