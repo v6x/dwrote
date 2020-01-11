@@ -3,11 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cell::UnsafeCell;
-
 use winapi::ctypes::wchar_t;
 use winapi::um::dwrite::IDWriteTextAnalysisSource;
-
-use com_helpers::Com;
+use wio::com::ComPtr;
 
 use super::*;
 
@@ -21,17 +19,21 @@ impl TextAnalysisSource {
     ///
     /// Note: this method only supports a single `NumberSubstitution` for the
     /// entire string.
-    pub fn from_text_and_number_subst(inner: Box<dyn TextAnalysisSourceMethods>,
-        text: Vec<wchar_t>, number_subst: NumberSubstitution) -> TextAnalysisSource
-    {
+    pub fn from_text_and_number_subst(
+        inner: Box<dyn TextAnalysisSourceMethods>,
+        text: Vec<wchar_t>,
+        number_subst: NumberSubstitution,
+    ) -> TextAnalysisSource {
         let native = CustomTextAnalysisSourceImpl::from_text_and_number_subst_native(
-            inner, text, number_subst
+            inner,
+            text,
+            number_subst,
         );
         TextAnalysisSource::take(native)
     }
 
     pub unsafe fn as_ptr(&self) -> *mut IDWriteTextAnalysisSource {
-        (*self.native.get()).as_ptr()
+        (*self.native.get()).as_raw()
     }
 
     // TODO: following crate conventions, but there's a safety problem
@@ -40,5 +42,4 @@ impl TextAnalysisSource {
             native: UnsafeCell::new(native),
         }
     }
-
 }
