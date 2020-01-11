@@ -1,8 +1,4 @@
 // This is only handy for implementing a single-interface-implementing IUnknown.
-//
-// it assumes that there's a UuidOf$interface GUID globally defined
-
-DEFINE_GUID! {UuidOfIUnknown, 0x00000000, 0x0000, 0x0000, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46}
 
 macro_rules! guid_equals {
     ($left:expr, $right:expr) => {
@@ -14,7 +10,7 @@ macro_rules! guid_equals {
 }
 
 macro_rules! implement_iunknown {
-    ($interface:ident, $iuud:ident, $typ:ident) => {
+    ($interface:ident, $typ:ident) => {
         IUnknownVtbl {
             QueryInterface: {
                 #[allow(non_snake_case)]
@@ -23,9 +19,10 @@ macro_rules! implement_iunknown {
                     riid: REFIID,
                     ppv_object: *mut *mut c_void,
                 ) -> HRESULT {
-                    let this = if guid_equals!(*riid, $iuud) {
+                    use $crate::winapi::Interface;
+                    let this = if guid_equals!(*riid, $interface::uuidof()) {
                         mem::transmute(unknown_this)
-                    } else if guid_equals!(*riid, UuidOfIUnknown) {
+                    } else if guid_equals!(*riid, IUnknown::uuidof()) {
                         mem::transmute(unknown_this)
                     } else {
                         return $crate::winapi::shared::winerror::E_NOINTERFACE;
@@ -58,7 +55,7 @@ macro_rules! implement_iunknown {
             },
         }
     };
-    (static $interface:ident, $iuud:ident, $typ:ident) => {
+    (static $interface:ident, $typ:ident) => {
         IUnknownVtbl {
             QueryInterface: {
                 #[allow(non_snake_case)]
@@ -67,9 +64,10 @@ macro_rules! implement_iunknown {
                     riid: REFIID,
                     ppvObject: *mut *mut $crate::winapi::ctypes::c_void,
                 ) -> HRESULT {
-                    let this = if guid_equals!(*riid, $iuud) {
+                    use $crate::winapi::Interface;
+                    let this = if guid_equals!(*riid, $interface::uuidof()) {
                         mem::transmute(unknown_this)
-                    } else if guid_equals!(*riid, UuidOfIUnknown) {
+                    } else if guid_equals!(*riid, IUnknown::uuidof()) {
                         mem::transmute(unknown_this)
                     } else {
                         return $crate::winapi::shared::winerror::E_NOINTERFACE;

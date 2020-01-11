@@ -5,8 +5,8 @@
 use std::cell::UnsafeCell;
 use winapi::um::dwrite::IDWriteRenderingParams;
 
-use crate::comptr::ComPtr;
 use super::DWriteFactory;
+use crate::comptr::ComPtr;
 
 pub struct RenderingParams {
     native: UnsafeCell<ComPtr<IDWriteRenderingParams>>,

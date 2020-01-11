@@ -23,11 +23,11 @@ use winapi::um::dwrite_1::IDWriteFontFace1;
 use winapi::um::dwrite_3::{IDWriteFontFace5, IDWriteFontResource, DWRITE_FONT_AXIS_VALUE};
 use winapi::Interface;
 
+use super::{DWriteFactory, DefaultDWriteRenderParams, FontFile, FontMetrics};
 use crate::com_helpers::Com;
 use crate::comptr::ComPtr;
 use crate::geometry_sink_impl::GeometrySinkImpl;
 use crate::outline_builder::OutlineBuilder;
-use super::{DWriteFactory, DefaultDWriteRenderParams, FontFile, FontMetrics};
 
 pub struct FontFace {
     native: UnsafeCell<ComPtr<IDWriteFontFace>>,
@@ -37,7 +37,10 @@ pub struct FontFace {
 impl FontFace {
     pub fn take(native: ComPtr<IDWriteFontFace>) -> FontFace {
         let cell = UnsafeCell::new(native);
-        FontFace { native: cell, face5: UnsafeCell::new(None) }
+        FontFace {
+            native: cell,
+            face5: UnsafeCell::new(None),
+        }
     }
 
     pub unsafe fn as_ptr(&self) -> *mut IDWriteFontFace {

@@ -19,24 +19,14 @@ use winapi::um::dwrite::IDWriteFontFileEnumeratorVtbl;
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
 
-use crate::com_helpers::{Com, UuidOfIUnknown};
+use crate::com_helpers::Com;
 use crate::comptr::ComPtr;
 use crate::FontFile;
-
-DEFINE_GUID! {
-    DWRITE_FONT_COLLECTION_LOADER_UUID,
-    0x12345678, 0x1234, 0x5678, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0
-}
-DEFINE_GUID! {
-    DWRITE_FONT_FILE_ENUMERATOR_UUID,
-    0x12345678, 0x1234, 0x5678, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0
-}
 
 static FONT_COLLECTION_LOADER_VTBL: IDWriteFontCollectionLoaderVtbl =
     IDWriteFontCollectionLoaderVtbl {
         parent: implement_iunknown!(static IDWriteFontCollectionLoader,
-                                DWRITE_FONT_COLLECTION_LOADER_UUID,
-                                CustomFontCollectionLoaderImpl),
+                                    CustomFontCollectionLoaderImpl),
         CreateEnumeratorFromKey: CustomFontCollectionLoaderImpl_CreateEnumeratorFromKey,
     };
 
@@ -118,9 +108,7 @@ impl Com<IUnknown> for CustomFontFileEnumeratorImpl {
 }
 
 static FONT_FILE_ENUMERATOR_VTBL: IDWriteFontFileEnumeratorVtbl = IDWriteFontFileEnumeratorVtbl {
-    parent: implement_iunknown!(static IDWriteFontFileEnumerator,
-                                DWRITE_FONT_FILE_ENUMERATOR_UUID,
-                                CustomFontFileEnumeratorImpl),
+    parent: implement_iunknown!(static IDWriteFontFileEnumerator, CustomFontFileEnumeratorImpl),
     GetCurrentFontFile: CustomFontFileEnumeratorImpl_GetCurrentFontFile,
     MoveNext: CustomFontFileEnumeratorImpl_MoveNext,
 };

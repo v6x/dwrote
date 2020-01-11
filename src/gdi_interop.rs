@@ -7,8 +7,8 @@ use std::ptr;
 use winapi::um::dwrite::IDWriteBitmapRenderTarget;
 use winapi::um::dwrite::IDWriteGdiInterop;
 
-use crate::comptr::ComPtr;
 use super::{BitmapRenderTarget, DWriteFactory};
+use crate::comptr::ComPtr;
 
 pub struct GdiInterop {
     native: UnsafeCell<ComPtr<IDWriteGdiInterop>>,

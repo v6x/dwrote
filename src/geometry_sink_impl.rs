@@ -12,18 +12,11 @@ use winapi::um::d2d1::{D2D1_FIGURE_END_CLOSED, D2D1_FILL_MODE, D2D1_PATH_SEGMENT
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
 
-use crate::com_helpers::{Com, UuidOfIUnknown};
+use crate::com_helpers::Com;
 use crate::outline_builder::OutlineBuilder;
 
-DEFINE_GUID! {
-    D2D1_SIMPLIFIED_GEOMETRY_SINK_UUID,
-    0x2cd9069e, 0x12e2, 0x11dc, 0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9
-}
-
 static GEOMETRY_SINK_VTBL: ID2D1SimplifiedGeometrySinkVtbl = ID2D1SimplifiedGeometrySinkVtbl {
-    parent: implement_iunknown!(static ID2D1SimplifiedGeometrySink,
-                                D2D1_SIMPLIFIED_GEOMETRY_SINK_UUID,
-                                GeometrySinkImpl),
+    parent: implement_iunknown!(static ID2D1SimplifiedGeometrySink, GeometrySinkImpl),
     BeginFigure: GeometrySinkImpl_BeginFigure,
     EndFigure: GeometrySinkImpl_EndFigure,
     AddLines: GeometrySinkImpl_AddLines,

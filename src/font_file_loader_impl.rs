@@ -16,17 +16,14 @@ use winapi::um::dwrite::{IDWriteFontFileStream, IDWriteFontFileStreamVtbl};
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
 
+use super::DWriteFactory;
 use crate::com_helpers::*;
 use crate::comptr::ComPtr;
-use super::DWriteFactory;
 
 struct FontFileLoader;
 
-DEFINE_GUID! {UuidOfIDWriteFontFileLoader, 0x727cad4e, 0xd6af, 0x4c9e, 0x8a, 0x08, 0xd6, 0x95, 0xb1, 0x1c, 0xaa, 0x49}
-DEFINE_GUID! {UuidOfIDWriteFontFileStream, 0x6d4865fe, 0x0ab8, 0x4d91, 0x8f, 0x62, 0x5d, 0xd6, 0xbe, 0x34, 0xa3, 0xe0}
-
 const FontFileLoaderVtbl: &'static IDWriteFontFileLoaderVtbl = &IDWriteFontFileLoaderVtbl {
-    parent: implement_iunknown!(static IDWriteFontFileLoader, UuidOfIDWriteFontFileLoader, FontFileLoader),
+    parent: implement_iunknown!(static IDWriteFontFileLoader, FontFileLoader),
     CreateStreamFromKey: {
         unsafe extern "system" fn CreateStreamFromKey(
             _This: *mut IDWriteFontFileLoader,
@@ -87,11 +84,7 @@ struct FontFileStream {
 }
 
 const FontFileStreamVtbl: &'static IDWriteFontFileStreamVtbl = &IDWriteFontFileStreamVtbl {
-    parent: implement_iunknown!(
-        IDWriteFontFileStream,
-        UuidOfIDWriteFontFileStream,
-        FontFileStream
-    ),
+    parent: implement_iunknown!(IDWriteFontFileStream, FontFileStream),
     ReadFileFragment: {
         unsafe extern "system" fn ReadFileFragment(
             This: *mut IDWriteFontFileStream,

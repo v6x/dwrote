@@ -12,9 +12,8 @@ extern crate serde_derive;
 
 #[macro_use]
 extern crate lazy_static;
-#[macro_use(DEFINE_GUID)]
-extern crate winapi;
 extern crate libc;
+extern crate winapi;
 
 include!("types.rs");
 

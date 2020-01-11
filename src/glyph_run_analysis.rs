@@ -13,8 +13,8 @@ use winapi::um::dwrite::{DWRITE_TEXTURE_ALIASED_1x1, DWRITE_GLYPH_RUN, DWRITE_TE
 use winapi::um::dwrite::{DWRITE_MATRIX, DWRITE_RENDERING_MODE};
 use winapi::um::winnt::HRESULT;
 
-use crate::comptr::ComPtr;
 use super::DWriteFactory;
+use crate::comptr::ComPtr;
 
 pub struct GlyphRunAnalysis {
     native: UnsafeCell<ComPtr<IDWriteGlyphRunAnalysis>>,

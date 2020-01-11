@@ -12,8 +12,8 @@ use winapi::um::dwrite::IDWriteBitmapRenderTarget;
 use winapi::um::dwrite::{DWRITE_GLYPH_OFFSET, DWRITE_GLYPH_RUN};
 use winapi::um::wingdi::{GetCurrentObject, GetObjectW, BITMAP, OBJ_BITMAP, RGB};
 
-use crate::comptr::ComPtr;
 use super::{FontFace, RenderingParams};
+use crate::comptr::ComPtr;
 
 pub struct BitmapRenderTarget {
     native: UnsafeCell<ComPtr<IDWriteBitmapRenderTarget>>,
@@ -110,8 +110,8 @@ impl BitmapRenderTarget {
             let height = bitmap.bmHeight as usize;
 
             let mut out_bytes: Vec<u8> = vec![0; width * height * 4];
-            let out_u32 = slice::from_raw_parts_mut(out_bytes.as_mut_ptr() as *mut u32,
-                                                    width * height);
+            let out_u32 =
+                slice::from_raw_parts_mut(out_bytes.as_mut_ptr() as *mut u32, width * height);
 
             for row in 0..height {
                 let in_offset = (row * stride) as isize;

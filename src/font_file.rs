@@ -18,10 +18,10 @@ use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_UNKNOWN, DWRITE_FONT_SIMULATIONS}
 use winapi::um::winnt::HRESULT;
 use winapi::Interface;
 
+use super::DWriteFactory;
 use crate::comptr::ComPtr;
 use crate::font_face::FontFace;
 use crate::font_file_loader_impl::DataFontHelper;
-use super::DWriteFactory;
 
 pub struct FontFile {
     native: UnsafeCell<ComPtr<IDWriteFontFile>>,

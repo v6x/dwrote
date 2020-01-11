@@ -10,9 +10,9 @@ use winapi::shared::winerror::S_OK;
 use winapi::um::dwrite::IDWriteFontCollectionLoader;
 use winapi::um::dwrite::{IDWriteFont, IDWriteFontCollection, IDWriteFontFamily};
 
+use super::{DWriteFactory, Font, FontDescriptor, FontFace, FontFamily};
 use crate::comptr::ComPtr;
 use crate::helpers::*;
-use super::{DWriteFactory, Font, FontDescriptor, FontFace, FontFamily};
 
 static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 

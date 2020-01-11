@@ -17,18 +17,18 @@ use winapi::shared::basetsd::UINT32;
 use winapi::shared::guiddef::REFIID;
 use winapi::shared::minwindef::{FALSE, TRUE, ULONG};
 use winapi::shared::winerror::{E_INVALIDARG, S_OK};
-use winapi::um::dwrite::DWRITE_NUMBER_SUBSTITUTION_METHOD;
-use winapi::um::dwrite::DWRITE_READING_DIRECTION;
 use winapi::um::dwrite::IDWriteNumberSubstitution;
 use winapi::um::dwrite::IDWriteTextAnalysisSource;
 use winapi::um::dwrite::IDWriteTextAnalysisSourceVtbl;
+use winapi::um::dwrite::DWRITE_NUMBER_SUBSTITUTION_METHOD;
+use winapi::um::dwrite::DWRITE_READING_DIRECTION;
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
 
-use crate::com_helpers::{Com, UuidOfIUnknown};
+use super::DWriteFactory;
+use crate::com_helpers::Com;
 use crate::comptr::ComPtr;
 use crate::helpers::ToWide;
-use super::DWriteFactory;
 
 /// The Rust side of a custom text analysis source implementation.
 pub trait TextAnalysisSourceMethods {
@@ -59,15 +59,8 @@ pub struct NumberSubstitution {
 
 // TODO: implement Clone, for convenience and efficiency?
 
-DEFINE_GUID! {
-    DWRITE_TEXT_ANALYSIS_SOURCE_UUID,
-    0x12345678, 0x1234, 0x5678, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0
-}
-
 static TEXT_ANALYSIS_SOURCE_VTBL: IDWriteTextAnalysisSourceVtbl = IDWriteTextAnalysisSourceVtbl {
-    parent: implement_iunknown!(static IDWriteTextAnalysisSource,
-                                DWRITE_TEXT_ANALYSIS_SOURCE_UUID,
-                                CustomTextAnalysisSourceImpl),
+    parent: implement_iunknown!(static IDWriteTextAnalysisSource, CustomTextAnalysisSourceImpl),
     GetLocaleName: CustomTextAnalysisSourceImpl_GetLocaleName,
     GetNumberSubstitution: CustomTextAnalysisSourceImpl_GetNumberSubstitution,
     GetParagraphReadingDirection: CustomTextAnalysisSourceImpl_GetParagraphReadingDirection,
