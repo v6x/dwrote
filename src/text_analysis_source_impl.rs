@@ -10,7 +10,7 @@
 use std::borrow::Cow;
 use std::cell::UnsafeCell;
 use std::mem;
-use std::ptr::null;
+use std::ptr::{self, null};
 use std::sync::atomic::AtomicUsize;
 use winapi::ctypes::wchar_t;
 use winapi::shared::basetsd::UINT32;
@@ -24,10 +24,10 @@ use winapi::um::dwrite::DWRITE_NUMBER_SUBSTITUTION_METHOD;
 use winapi::um::dwrite::DWRITE_READING_DIRECTION;
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
+use wio::com::ComPtr;
 
 use super::DWriteFactory;
 use crate::com_helpers::Com;
-use crate::comptr::ComPtr;
 use crate::helpers::ToWide;
 
 /// The Rust side of a custom text analysis source implementation.
@@ -81,7 +81,7 @@ impl CustomTextAnalysisSourceImpl {
     ) -> ComPtr<IDWriteTextAnalysisSource> {
         assert!(text.len() <= (std::u32::MAX as usize));
         unsafe {
-            ComPtr::already_addrefed(
+            ComPtr::from_raw(
                 CustomTextAnalysisSourceImpl {
                     _refcount: AtomicUsize::new(1),
                     inner,
@@ -136,9 +136,9 @@ unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetNumberSubstitution(
     if text_position >= (this.text.len() as u32) {
         return E_INVALIDARG;
     }
-    (*this.number_subst.native.get()).addref();
+    (*this.number_subst.native.get()).AddRef();
     *text_length = (this.text.len() as UINT32) - text_position;
-    *number_substitution = (*this.number_subst.native.get()).as_ptr();
+    *number_substitution = (*this.number_subst.native.get()).as_raw();
     S_OK
 }
 
@@ -190,16 +190,16 @@ impl NumberSubstitution {
         ignore_user_overrides: bool,
     ) -> NumberSubstitution {
         unsafe {
-            let mut native: ComPtr<IDWriteNumberSubstitution> = ComPtr::new();
+            let mut native: *mut IDWriteNumberSubstitution = ptr::null_mut();
             let hr = (*DWriteFactory()).CreateNumberSubstitution(
                 subst_method,
                 locale.to_wide_null().as_ptr(),
                 if ignore_user_overrides { TRUE } else { FALSE },
-                native.getter_addrefs(),
+                &mut native,
             );
             assert_eq!(hr, 0, "error creating number substitution");
             NumberSubstitution {
-                native: UnsafeCell::new(native),
+                native: UnsafeCell::new(ComPtr::from_raw(native)),
             }
         }
     }

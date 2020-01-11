@@ -9,8 +9,7 @@ use winapi::shared::minwindef::{BOOL, FALSE};
 use winapi::shared::winerror::S_OK;
 use winapi::um::dwrite::IDWriteLocalizedStrings;
 use winapi::um::winnls::GetUserDefaultLocaleName;
-
-use crate::comptr::ComPtr;
+use wio::com::ComPtr;
 
 lazy_static! {
     static ref SYSTEM_LOCALE: Vec<wchar_t> = {

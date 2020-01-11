@@ -18,9 +18,9 @@ use winapi::um::dwrite::IDWriteFontFileEnumerator;
 use winapi::um::dwrite::IDWriteFontFileEnumeratorVtbl;
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
+use wio::com::ComPtr;
 
 use crate::com_helpers::Com;
-use crate::comptr::ComPtr;
 use crate::FontFile;
 
 static FONT_COLLECTION_LOADER_VTBL: IDWriteFontCollectionLoaderVtbl =
@@ -56,7 +56,7 @@ impl Com<IUnknown> for CustomFontCollectionLoaderImpl {
 impl CustomFontCollectionLoaderImpl {
     pub fn new(font_files: &[FontFile]) -> ComPtr<IDWriteFontCollectionLoader> {
         unsafe {
-            ComPtr::already_addrefed(
+            ComPtr::from_raw(
                 CustomFontCollectionLoaderImpl {
                     _refcount: AtomicUsize::new(1),
                     font_files: font_files.iter().map(|file| file.as_com_ptr()).collect(),
@@ -77,8 +77,8 @@ unsafe extern "system" fn CustomFontCollectionLoaderImpl_CreateEnumeratorFromKey
 ) -> HRESULT {
     let this = CustomFontCollectionLoaderImpl::from_interface(this);
     let enumerator = CustomFontFileEnumeratorImpl::new((*this).font_files.clone());
-    let enumerator = ComPtr::<IDWriteFontFileEnumerator>::from_ptr(enumerator.into_interface());
-    *out_enumerator = enumerator.as_ptr();
+    let enumerator = ComPtr::<IDWriteFontFileEnumerator>::from_raw(enumerator.into_interface());
+    *out_enumerator = enumerator.as_raw();
     mem::forget(enumerator);
     S_OK
 }
@@ -133,7 +133,7 @@ unsafe extern "system" fn CustomFontFileEnumeratorImpl_GetCurrentFontFile(
         return E_INVALIDARG;
     }
     let new_font_file = (*this).font_files[(*this).index as usize].clone();
-    *out_font_file = new_font_file.as_ptr();
+    *out_font_file = new_font_file.as_raw();
     mem::forget(new_font_file);
     S_OK
 }

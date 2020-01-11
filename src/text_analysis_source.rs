@@ -5,6 +5,7 @@
 use std::cell::UnsafeCell;
 use winapi::ctypes::wchar_t;
 use winapi::um::dwrite::IDWriteTextAnalysisSource;
+use wio::com::ComPtr;
 
 use super::*;
 
@@ -32,7 +33,7 @@ impl TextAnalysisSource {
     }
 
     pub unsafe fn as_ptr(&self) -> *mut IDWriteTextAnalysisSource {
-        (*self.native.get()).as_ptr()
+        (*self.native.get()).as_raw()
     }
 
     // TODO: following crate conventions, but there's a safety problem

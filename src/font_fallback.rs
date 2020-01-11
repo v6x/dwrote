@@ -5,6 +5,7 @@
 use std::cell::UnsafeCell;
 use std::ptr::null_mut;
 use winapi::um::dwrite_2::{IDWriteFactory2, IDWriteFontFallback};
+use wio::com::ComPtr;
 
 use super::*;
 
@@ -24,14 +25,14 @@ pub struct FallbackResult {
 impl FontFallback {
     pub fn get_system_fallback() -> Option<FontFallback> {
         unsafe {
-            let factory = ComPtr::already_addrefed(DWriteFactory());
-            let factory2 = factory.query_interface::<IDWriteFactory2>(&IDWriteFactory2::uuidof());
+            let factory = ComPtr::from_raw(DWriteFactory());
+            let factory2: Option<ComPtr<IDWriteFactory2>> = factory.cast().ok();
             std::mem::forget(factory);
             let factory2 = factory2?;
             let mut native = null_mut();
             let hr = factory2.GetSystemFontFallback(&mut native);
             assert_eq!(hr, 0);
-            Some(Self::take(ComPtr::from_ptr(native)))
+            Some(Self::take(ComPtr::from_raw(native)))
         }
     }
 
@@ -43,7 +44,7 @@ impl FontFallback {
 
     // TODO: I'm following crate conventions for unsafe, but it's bullshit
     pub unsafe fn as_ptr(&self) -> *mut IDWriteFontFallback {
-        (*self.native.get()).as_ptr()
+        (*self.native.get()).as_raw()
     }
 
     // TODO: map_characters (main function)
@@ -81,7 +82,7 @@ impl FontFallback {
             let mapped_font = if font.is_null() {
                 None
             } else {
-                Some(Font::take(ComPtr::already_addrefed(font)))
+                Some(Font::take(ComPtr::from_raw(font)))
             };
             FallbackResult {
                 mapped_length: mapped_length as usize,

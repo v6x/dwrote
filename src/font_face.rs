@@ -21,11 +21,10 @@ use winapi::um::dwrite::{DWRITE_GLYPH_OFFSET, DWRITE_MATRIX, DWRITE_RENDERING_MO
 use winapi::um::dwrite::{DWRITE_RENDERING_MODE_DEFAULT, DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC};
 use winapi::um::dwrite_1::IDWriteFontFace1;
 use winapi::um::dwrite_3::{IDWriteFontFace5, IDWriteFontResource, DWRITE_FONT_AXIS_VALUE};
-use winapi::Interface;
+use wio::com::ComPtr;
 
 use super::{DWriteFactory, DefaultDWriteRenderParams, FontFile, FontMetrics};
 use crate::com_helpers::Com;
-use crate::comptr::ComPtr;
 use crate::geometry_sink_impl::GeometrySinkImpl;
 use crate::outline_builder::OutlineBuilder;
 
@@ -44,7 +43,7 @@ impl FontFace {
     }
 
     pub unsafe fn as_ptr(&self) -> *mut IDWriteFontFace {
-        (*self.native.get()).as_ptr()
+        (*self.native.get()).as_raw()
     }
 
     unsafe fn get_raw_files(&self) -> Vec<*mut IDWriteFontFile> {
@@ -64,7 +63,7 @@ impl FontFace {
             let file_ptrs = self.get_raw_files();
             file_ptrs
                 .iter()
-                .map(|p| FontFile::take(ComPtr::from_ptr(*p)))
+                .map(|p| FontFile::take(ComPtr::from_raw(*p)))
                 .collect()
         }
     }
@@ -77,20 +76,20 @@ impl FontFace {
             let file_ptrs = self.get_raw_files();
             let face_type = (*self.native.get()).GetType();
             let face_index = (*self.native.get()).GetIndex();
-            let mut face: ComPtr<IDWriteFontFace> = ComPtr::new();
+            let mut face: *mut IDWriteFontFace = ptr::null_mut();
             let hr = (*DWriteFactory()).CreateFontFace(
                 face_type,
                 file_ptrs.len() as u32,
                 file_ptrs.as_ptr(),
                 face_index,
                 simulations,
-                face.getter_addrefs(),
+                &mut face,
             );
             for p in file_ptrs {
-                let _ = ComPtr::<IDWriteFontFile>::already_addrefed(p);
+                let _ = ComPtr::<IDWriteFontFile>::from_raw(p);
             }
             assert!(hr == 0);
-            FontFace::take(face)
+            FontFace::take(ComPtr::from_raw(face))
         }
     }
 
@@ -100,8 +99,7 @@ impl FontFace {
 
     pub fn metrics(&self) -> FontMetrics {
         unsafe {
-            let font_1: Option<ComPtr<IDWriteFontFace1>> =
-                (*self.native.get()).query_interface(&IDWriteFontFace1::uuidof());
+            let font_1: Option<ComPtr<IDWriteFontFace1>> = (*self.native.get()).cast().ok();
             match font_1 {
                 None => {
                     let mut metrics = mem::zeroed();
@@ -310,21 +308,18 @@ impl FontFace {
     }
 
     #[inline]
-    unsafe fn get_face5(&self) -> &mut ComPtr<IDWriteFontFace5> {
-        (*self.face5.get()).get_or_insert_with(|| {
-            (*self.native.get())
-                .query_interface(&IDWriteFontFace5::uuidof())
-                .unwrap_or(ComPtr::new())
-        })
+    unsafe fn get_face5(&self) -> Option<ComPtr<IDWriteFontFace5>> {
+        if (*self.face5.get()).is_none() {
+            *self.face5.get() = (*self.native.get()).cast().ok()
+        }
+        (*self.face5.get()).clone()
     }
 
     pub fn has_variations(&self) -> bool {
         unsafe {
-            let face5 = self.get_face5();
-            if !face5.is_null() {
-                face5.HasVariations() == TRUE
-            } else {
-                false
+            match self.get_face5() {
+                Some(face5) => face5.HasVariations() == TRUE,
+                None => false,
             }
         }
     }
@@ -335,19 +330,20 @@ impl FontFace {
         axis_values: &[DWRITE_FONT_AXIS_VALUE],
     ) -> Option<FontFace> {
         unsafe {
-            let face5 = self.get_face5();
-            if !face5.is_null() {
-                let mut resource: ComPtr<IDWriteFontResource> = ComPtr::new();
-                let hr = face5.GetFontResource(resource.getter_addrefs());
+            if let Some(face5) = self.get_face5() {
+                let mut resource: *mut IDWriteFontResource = ptr::null_mut();
+                let hr = face5.GetFontResource(&mut resource);
                 if hr == S_OK && !resource.is_null() {
-                    let mut var_face: ComPtr<IDWriteFontFace> = ComPtr::new();
+                    let resource = ComPtr::from_raw(resource);
+                    let mut var_face: *mut IDWriteFontFace5 = ptr::null_mut();
                     let hr = resource.CreateFontFace(
                         simulations,
                         axis_values.as_ptr(),
                         axis_values.len() as u32,
-                        var_face.getter_addrefs(),
+                        &mut var_face,
                     );
                     if hr == S_OK && !var_face.is_null() {
+                        let var_face = ComPtr::from_raw(var_face).cast().unwrap();
                         return Some(FontFace::take(var_face));
                     }
                 }

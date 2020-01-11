@@ -11,9 +11,9 @@ use winapi::um::dcommon::DWRITE_MEASURING_MODE;
 use winapi::um::dwrite::IDWriteBitmapRenderTarget;
 use winapi::um::dwrite::{DWRITE_GLYPH_OFFSET, DWRITE_GLYPH_RUN};
 use winapi::um::wingdi::{GetCurrentObject, GetObjectW, BITMAP, OBJ_BITMAP, RGB};
+use wio::com::ComPtr;
 
 use super::{FontFace, RenderingParams};
-use crate::comptr::ComPtr;
 
 pub struct BitmapRenderTarget {
     native: UnsafeCell<ComPtr<IDWriteBitmapRenderTarget>>,
@@ -27,7 +27,7 @@ impl BitmapRenderTarget {
     }
 
     pub unsafe fn as_ptr(&self) -> *mut IDWriteBitmapRenderTarget {
-        (*self.native.get()).as_ptr()
+        (*self.native.get()).as_raw()
     }
 
     // A dip is 1/96th of an inch, so this value is the number of pixels per inch divided by 96.

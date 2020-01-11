@@ -12,9 +12,9 @@ use winapi::um::dwrite::IDWriteGlyphRunAnalysis;
 use winapi::um::dwrite::{DWRITE_TEXTURE_ALIASED_1x1, DWRITE_GLYPH_RUN, DWRITE_TEXTURE_TYPE};
 use winapi::um::dwrite::{DWRITE_MATRIX, DWRITE_RENDERING_MODE};
 use winapi::um::winnt::HRESULT;
+use wio::com::ComPtr;
 
 use super::DWriteFactory;
-use crate::comptr::ComPtr;
 
 pub struct GlyphRunAnalysis {
     native: UnsafeCell<ComPtr<IDWriteGlyphRunAnalysis>>,
@@ -31,7 +31,7 @@ impl GlyphRunAnalysis {
         baseline_y: f32,
     ) -> Result<GlyphRunAnalysis, HRESULT> {
         unsafe {
-            let mut native: ComPtr<IDWriteGlyphRunAnalysis> = ComPtr::new();
+            let mut native: *mut IDWriteGlyphRunAnalysis = ptr::null_mut();
             let hr = (*DWriteFactory()).CreateGlyphRunAnalysis(
                 glyph_run as *const DWRITE_GLYPH_RUN,
                 pixels_per_dip,
@@ -43,12 +43,12 @@ impl GlyphRunAnalysis {
                 measuring_mode,
                 baseline_x,
                 baseline_y,
-                native.getter_addrefs(),
+                &mut native,
             );
             if hr != 0 {
                 Err(hr)
             } else {
-                Ok(GlyphRunAnalysis::take(native))
+                Ok(GlyphRunAnalysis::take(ComPtr::from_raw(native)))
             }
         }
     }

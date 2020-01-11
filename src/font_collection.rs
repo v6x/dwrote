@@ -4,15 +4,16 @@
 
 use std::cell::UnsafeCell;
 use std::mem;
+use std::ptr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use winapi::shared::minwindef::{BOOL, FALSE, TRUE};
 use winapi::shared::winerror::S_OK;
 use winapi::um::dwrite::IDWriteFontCollectionLoader;
 use winapi::um::dwrite::{IDWriteFont, IDWriteFontCollection, IDWriteFontFamily};
+use wio::com::ComPtr;
 
-use super::{DWriteFactory, Font, FontDescriptor, FontFace, FontFamily};
-use crate::comptr::ComPtr;
 use crate::helpers::*;
+use super::{DWriteFactory, Font, FontDescriptor, FontFace, FontFamily};
 
 static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 
@@ -30,13 +31,11 @@ impl Iterator for FontCollectionFamilyIterator {
         }
 
         unsafe {
-            let mut family: ComPtr<IDWriteFontFamily> = ComPtr::new();
-            let hr = self
-                .collection
-                .GetFontFamily(self.curr, family.getter_addrefs());
+            let mut family: *mut IDWriteFontFamily = ptr::null_mut();
+            let hr = self.collection.GetFontFamily(self.curr, &mut family);
             assert!(hr == 0);
             self.curr += 1;
-            Some(FontFamily::take(family))
+            Some(FontFamily::take(ComPtr::from_raw(family)))
         }
     }
 }
@@ -48,15 +47,15 @@ pub struct FontCollection {
 impl FontCollection {
     pub fn get_system(update: bool) -> FontCollection {
         unsafe {
-            let mut native: ComPtr<IDWriteFontCollection> = ComPtr::new();
+            let mut native: *mut IDWriteFontCollection = ptr::null_mut();
             let hr = (*DWriteFactory()).GetSystemFontCollection(
-                native.getter_addrefs(),
+                &mut native,
                 if update { TRUE } else { FALSE },
             );
             assert!(hr == 0);
 
             FontCollection {
-                native: UnsafeCell::new(native),
+                native: UnsafeCell::new(ComPtr::from_raw(native)),
             }
         }
     }
@@ -75,26 +74,26 @@ impl FontCollection {
         unsafe {
             let factory = DWriteFactory();
             assert_eq!(
-                (*factory).RegisterFontCollectionLoader(collection_loader.clone().forget()),
+                (*factory).RegisterFontCollectionLoader(collection_loader.clone().into_raw()),
                 S_OK
             );
-            let mut collection: ComPtr<IDWriteFontCollection> = ComPtr::new();
+            let mut collection: *mut IDWriteFontCollection = ptr::null_mut();
             let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
             assert_eq!(
                 (*factory).CreateCustomFontCollection(
-                    collection_loader.clone().forget(),
+                    collection_loader.clone().into_raw(),
                     &id as *const usize as *const _,
                     mem::size_of::<AtomicUsize>() as u32,
-                    collection.getter_addrefs()
+                    &mut collection
                 ),
                 S_OK
             );
-            FontCollection::take(collection)
+            FontCollection::take(ComPtr::from_raw(collection))
         }
     }
 
     pub unsafe fn as_ptr(&self) -> *mut IDWriteFontCollection {
-        (*self.native.get()).as_ptr()
+        (*self.native.get()).as_raw()
     }
 
     pub fn families_iter(&self) -> FontCollectionFamilyIterator {
@@ -113,10 +112,10 @@ impl FontCollection {
 
     pub fn get_font_family(&self, index: u32) -> FontFamily {
         unsafe {
-            let mut family: ComPtr<IDWriteFontFamily> = ComPtr::new();
-            let hr = (*self.native.get()).GetFontFamily(index, family.getter_addrefs());
+            let mut family: *mut IDWriteFontFamily = ptr::null_mut();
+            let hr = (*self.native.get()).GetFontFamily(index, &mut family);
             assert!(hr == 0);
-            FontFamily::take(family)
+            FontFamily::take(ComPtr::from_raw(family))
         }
     }
 
@@ -139,12 +138,12 @@ impl FontCollection {
 
     pub fn get_font_from_face(&self, face: &FontFace) -> Option<Font> {
         unsafe {
-            let mut font: ComPtr<IDWriteFont> = ComPtr::new();
-            let hr = (*self.native.get()).GetFontFromFontFace(face.as_ptr(), font.getter_addrefs());
+            let mut font: *mut IDWriteFont = ptr::null_mut();
+            let hr = (*self.native.get()).GetFontFromFontFace(face.as_ptr(), &mut font);
             if hr != 0 {
                 return None;
             }
-            Some(Font::take(font))
+            Some(Font::take(ComPtr::from_raw(font)))
         }
     }
 
@@ -162,11 +161,11 @@ impl FontCollection {
                 return None;
             }
 
-            let mut family: ComPtr<IDWriteFontFamily> = ComPtr::new();
-            let hr = (*self.native.get()).GetFontFamily(index, family.getter_addrefs());
+            let mut family: *mut IDWriteFontFamily = ptr::null_mut();
+            let hr = (*self.native.get()).GetFontFamily(index, &mut family);
             assert!(hr == 0);
 
-            Some(FontFamily::take(family))
+            Some(FontFamily::take(ComPtr::from_raw(family)))
         }
     }
 }

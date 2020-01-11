@@ -15,10 +15,10 @@ use winapi::um::dwrite::{IDWriteFontFileLoader, IDWriteFontFileLoaderVtbl};
 use winapi::um::dwrite::{IDWriteFontFileStream, IDWriteFontFileStreamVtbl};
 use winapi::um::unknwnbase::{IUnknown, IUnknownVtbl};
 use winapi::um::winnt::HRESULT;
+use wio::com::ComPtr;
 
 use super::DWriteFactory;
 use crate::com_helpers::*;
-use crate::comptr::ComPtr;
 
 struct FontFileLoader;
 
@@ -170,17 +170,23 @@ unsafe impl Send for FontFileStreamPtr {}
 
 static mut FONT_FILE_KEY: atomic::AtomicUsize = AtomicUsize::new(0);
 
+#[derive(Clone)]
+struct FontFileLoaderWrapper(ComPtr<IDWriteFontFileLoader>);
+
+unsafe impl Send for FontFileLoaderWrapper {}
+unsafe impl Sync for FontFileLoaderWrapper {}
+
 lazy_static! {
     static ref FONT_FILE_STREAM_MAP: Mutex<HashMap<usize, FontFileStreamPtr>> =
         { Mutex::new(HashMap::new()) };
-    static ref FONT_FILE_LOADER: Mutex<ComPtr<IDWriteFontFileLoader>> = {
-        let ffl_native = FontFileLoader::new();
-        let ffl = ComPtr::<IDWriteFontFileLoader>::from_ptr(ffl_native.into_interface());
+    static ref FONT_FILE_LOADER: Mutex<FontFileLoaderWrapper> = {
         unsafe {
-            let hr = (*DWriteFactory()).RegisterFontFileLoader(ffl.as_ptr());
+            let ffl_native = FontFileLoader::new();
+            let ffl = ComPtr::<IDWriteFontFileLoader>::from_raw(ffl_native.into_interface());
+            let hr = (*DWriteFactory()).RegisterFontFileLoader(ffl.as_raw());
             assert!(hr == 0);
+            Mutex::new(FontFileLoaderWrapper(ffl))
         }
-        Mutex::new(ffl)
     };
 }
 
@@ -198,24 +204,25 @@ impl DataFontHelper {
             let key = FONT_FILE_KEY.fetch_add(1, atomic::Ordering::Relaxed);
             let font_file_stream_native = FontFileStream::new(key, font_data);
             let font_file_stream: ComPtr<IDWriteFontFileStream> =
-                ComPtr::already_addrefed(font_file_stream_native.into_interface());
+                ComPtr::from_raw(font_file_stream_native.into_interface());
 
             {
                 let mut map = FONT_FILE_STREAM_MAP.lock().unwrap();
-                map.insert(key, FontFileStreamPtr(font_file_stream.as_ptr()));
+                map.insert(key, FontFileStreamPtr(font_file_stream.as_raw()));
             }
 
-            let mut font_file: ComPtr<IDWriteFontFile> = ComPtr::new();
+            let mut font_file: *mut IDWriteFontFile = ptr::null_mut();
             {
                 let loader = FONT_FILE_LOADER.lock().unwrap();
                 let hr = (*DWriteFactory()).CreateCustomFontFileReference(
                     mem::transmute(&key),
                     mem::size_of::<usize>() as UINT32,
-                    loader.as_ptr(),
-                    font_file.getter_addrefs(),
+                    loader.0.as_raw(),
+                    &mut font_file,
                 );
                 assert!(hr == S_OK);
             }
+            let font_file = ComPtr::from_raw(font_file);
 
             (font_file, font_file_stream, key)
         }

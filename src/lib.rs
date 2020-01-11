@@ -18,20 +18,19 @@ extern crate winapi;
 include!("types.rs");
 
 use std::ffi::CString;
+use std::ptr;
+use winapi::Interface;
 use winapi::shared::guiddef::REFIID;
-use winapi::um::dwrite::IDWriteFactory;
-use winapi::um::dwrite::IDWriteRenderingParams;
+use winapi::shared::winerror::S_OK;
 use winapi::um::dwrite::DWRITE_FACTORY_TYPE;
 use winapi::um::dwrite::DWRITE_FACTORY_TYPE_SHARED;
+use winapi::um::dwrite::IDWriteFactory;
+use winapi::um::dwrite::IDWriteRenderingParams;
 use winapi::um::unknwnbase::IUnknown;
-pub use winapi::um::winnt::HRESULT;
 use winapi::um::winnt::LPCSTR;
-use winapi::Interface;
 
-use comptr::ComPtr;
-use winapi::shared::winerror::S_OK;
+pub use winapi::um::winnt::HRESULT;
 
-mod comptr;
 mod helpers;
 use helpers::ToWide;
 use std::os::raw::c_void;
@@ -116,9 +115,6 @@ pub use text_analysis_source_impl::{
 // expose `IDWriteGeometrySink` in an idiomatic way.
 mod geometry_sink_impl;
 
-unsafe impl Sync for ComPtr<IDWriteFactory> {}
-unsafe impl Sync for ComPtr<IDWriteRenderingParams> {}
-
 lazy_static! {
     static ref DWRITE_FACTORY_RAW_PTR: usize = {
         unsafe {
@@ -136,24 +132,22 @@ lazy_static! {
                 dwrite_create_factory_ptr as *const _,
             );
 
-            let mut factory: ComPtr<IDWriteFactory> = ComPtr::new();
+            let mut factory: *mut IDWriteFactory = ptr::null_mut();
             let hr = dwrite_create_factory(
                 DWRITE_FACTORY_TYPE_SHARED,
                 &IDWriteFactory::uuidof(),
-                factory.getter_addrefs(),
+                &mut factory as *mut *mut IDWriteFactory as *mut *mut IUnknown,
             );
             assert!(hr == S_OK);
-            factory.forget() as usize
+            factory as usize
         }
     };
     static ref DEFAULT_DWRITE_RENDERING_PARAMS_RAW_PTR: usize = {
         unsafe {
-            let mut default_rendering_params: ComPtr<IDWriteRenderingParams> = ComPtr::new();
-            let hr =
-                (*DWriteFactory()).CreateRenderingParams(default_rendering_params.getter_addrefs());
+            let mut default_rendering_params: *mut IDWriteRenderingParams = ptr::null_mut();
+            let hr = (*DWriteFactory()).CreateRenderingParams(&mut default_rendering_params);
             assert!(hr == S_OK);
-
-            default_rendering_params.forget() as usize
+            default_rendering_params as usize
         }
     };
 } // end lazy static

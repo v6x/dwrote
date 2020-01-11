@@ -16,10 +16,9 @@ use winapi::um::dwrite::{IDWriteFontFileLoader, IDWriteLocalFontFileLoader};
 use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE, DWRITE_FONT_FILE_TYPE_UNKNOWN};
 use winapi::um::dwrite::{DWRITE_FONT_FACE_TYPE_UNKNOWN, DWRITE_FONT_SIMULATIONS};
 use winapi::um::winnt::HRESULT;
-use winapi::Interface;
+use wio::com::ComPtr;
 
 use super::DWriteFactory;
-use crate::comptr::ComPtr;
 use crate::font_face::FontFace;
 use crate::font_file_loader_impl::DataFontHelper;
 
@@ -39,18 +38,18 @@ impl FontFile {
             let mut path: Vec<u16> = path.as_ref().as_os_str().encode_wide().collect();
             path.push(0);
 
-            let mut font_file: ComPtr<IDWriteFontFile> = ComPtr::new();
+            let mut font_file: *mut IDWriteFontFile = ptr::null_mut();
             let hr = (*DWriteFactory()).CreateFontFileReference(
                 path.as_ptr(),
                 ptr::null(),
-                font_file.getter_addrefs(),
+                &mut font_file,
             );
             if hr != 0 || font_file.is_null() {
                 return None;
             }
 
             let mut ff = FontFile {
-                native: UnsafeCell::new(font_file),
+                native: UnsafeCell::new(ComPtr::from_raw(font_file)),
                 stream: UnsafeCell::new(None),
                 data_key: 0,
                 face_type: DWRITE_FONT_FACE_TYPE_UNKNOWN,
@@ -148,13 +147,15 @@ impl FontFile {
             let hr = (*self.native.get()).GetReferenceKey(&mut ref_key, &mut ref_key_size);
             assert!(hr == 0);
 
-            let mut loader: ComPtr<IDWriteFontFileLoader> = ComPtr::new();
-            let hr = (*self.native.get()).GetLoader(loader.getter_addrefs());
+            let mut loader: *mut IDWriteFontFileLoader = ptr::null_mut();
+            let hr = (*self.native.get()).GetLoader(&mut loader);
             assert!(hr == 0);
+            let loader = ComPtr::from_raw(loader);
 
-            let mut stream: ComPtr<IDWriteFontFileStream> = ComPtr::new();
-            let hr = loader.CreateStreamFromKey(ref_key, ref_key_size, stream.getter_addrefs());
+            let mut stream: *mut IDWriteFontFileStream = ptr::null_mut();
+            let hr = loader.CreateStreamFromKey(ref_key, ref_key_size, &mut stream);
             assert!(hr == 0);
+            let stream = ComPtr::from_raw(stream);
 
             let mut file_size: u64 = 0;
             let hr = stream.GetFileSize(&mut file_size);
@@ -184,15 +185,15 @@ impl FontFile {
             let hr = (*self.native.get()).GetReferenceKey(&mut ref_key, &mut ref_key_size);
             assert!(hr == 0);
 
-            let mut loader: ComPtr<IDWriteFontFileLoader> = ComPtr::new();
-            let hr = (*self.native.get()).GetLoader(loader.getter_addrefs());
+            let mut loader: *mut IDWriteFontFileLoader = ptr::null_mut();
+            let hr = (*self.native.get()).GetLoader(&mut loader);
             assert!(hr == 0);
+            let loader = ComPtr::from_raw(loader);
 
-            let local_loader: ComPtr<IDWriteLocalFontFileLoader> =
-                match loader.query_interface(&IDWriteLocalFontFileLoader::uuidof()) {
-                    Some(local_loader) => local_loader,
-                    None => return None,
-                };
+            let local_loader: ComPtr<IDWriteLocalFontFileLoader> = match loader.cast() {
+                Ok(local_loader) => local_loader,
+                Err(_) => return None,
+            };
 
             let mut file_path_len = 0;
             let hr =
@@ -222,20 +223,20 @@ impl FontFile {
         simulations: DWRITE_FONT_SIMULATIONS,
     ) -> Result<FontFace, HRESULT> {
         unsafe {
-            let mut face: ComPtr<IDWriteFontFace> = ComPtr::new();
+            let mut face: *mut IDWriteFontFace = ptr::null_mut();
             let ptr = self.as_com_ptr();
             let hr = (*DWriteFactory()).CreateFontFace(
                 self.face_type,
                 1,
-                &ptr.as_ptr(),
+                &ptr.as_raw(),
                 face_index,
                 simulations,
-                face.getter_addrefs(),
+                &mut face,
             );
             if hr != 0 {
                 Err(hr)
             } else {
-                Ok(FontFace::take(face))
+                Ok(FontFace::take(ComPtr::from_raw(face)))
             }
         }
     }

@@ -6,9 +6,9 @@ use std::cell::UnsafeCell;
 use std::ptr;
 use winapi::um::dwrite::IDWriteBitmapRenderTarget;
 use winapi::um::dwrite::IDWriteGdiInterop;
+use wio::com::ComPtr;
 
 use super::{BitmapRenderTarget, DWriteFactory};
-use crate::comptr::ComPtr;
 
 pub struct GdiInterop {
     native: UnsafeCell<ComPtr<IDWriteGdiInterop>>,
@@ -17,10 +17,10 @@ pub struct GdiInterop {
 impl GdiInterop {
     pub fn create() -> GdiInterop {
         unsafe {
-            let mut native: ComPtr<IDWriteGdiInterop> = ComPtr::new();
-            let hr = (*DWriteFactory()).GetGdiInterop(native.getter_addrefs());
+            let mut native: *mut IDWriteGdiInterop = ptr::null_mut();
+            let hr = (*DWriteFactory()).GetGdiInterop(&mut native);
             assert!(hr == 0);
-            GdiInterop::take(native)
+            GdiInterop::take(ComPtr::from_raw(native))
         }
     }
 
@@ -32,15 +32,15 @@ impl GdiInterop {
 
     pub fn create_bitmap_render_target(&self, width: u32, height: u32) -> BitmapRenderTarget {
         unsafe {
-            let mut native: ComPtr<IDWriteBitmapRenderTarget> = ComPtr::new();
+            let mut native: *mut IDWriteBitmapRenderTarget = ptr::null_mut();
             let hr = (*self.native.get()).CreateBitmapRenderTarget(
                 ptr::null_mut(),
                 width,
                 height,
-                native.getter_addrefs(),
+                &mut native,
             );
             assert!(hr == 0);
-            BitmapRenderTarget::take(native)
+            BitmapRenderTarget::take(ComPtr::from_raw(native))
         }
     }
 }
