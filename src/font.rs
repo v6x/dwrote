@@ -159,3 +159,24 @@ pub enum FontMetrics {
     /// Windows 8 and up.
     Metrics1(DWRITE_FONT_METRICS1),
 }
+
+impl FontMetrics {
+    /// Convert self to the Metrics0 arm (throwing away additional information)
+    pub fn metrics0(self) -> DWRITE_FONT_METRICS {
+        match self {
+            FontMetrics::Metrics0(metrics) => metrics,
+            FontMetrics::Metrics1(metrics) => DWRITE_FONT_METRICS {
+                designUnitsPerEm: metrics.designUnitsPerEm,
+                ascent: metrics.ascent,
+                descent: metrics.descent,
+                lineGap: metrics.lineGap,
+                capHeight: metrics.capHeight,
+                xHeight: metrics.xHeight,
+                underlinePosition: metrics.underlinePosition,
+                underlineThickness: metrics.underlineThickness,
+                strikethroughPosition: metrics.strikethroughPosition,
+                strikethroughThickness: metrics.strikethroughThickness,
+            }
+        }
+    }
+}
