@@ -17,6 +17,19 @@ impl TextAnalysisSource {
     /// Create a new custom TextAnalysisSource for the given text and a trait
     /// implementation.
     ///
+    /// Note: this method has no NumberSubsitution specified. See
+    /// `from_text_and_number_subst` if you need number substitution.
+    pub fn from_text(
+        inner: Box<dyn TextAnalysisSourceMethods>,
+        text: Vec<wchar_t>,
+    ) -> TextAnalysisSource {
+        let native = CustomTextAnalysisSourceImpl::from_text_native(inner, text);
+        TextAnalysisSource::take(native)
+    }
+
+    /// Create a new custom TextAnalysisSource for the given text and a trait
+    /// implementation.
+    ///
     /// Note: this method only supports a single `NumberSubstitution` for the
     /// entire string.
     pub fn from_text_and_number_subst(

@@ -48,7 +48,7 @@ pub struct CustomTextAnalysisSourceImpl {
     _refcount: AtomicUsize,
     inner: Box<dyn TextAnalysisSourceMethods>,
     text: Vec<wchar_t>,
-    number_subst: NumberSubstitution,
+    number_subst: Option<NumberSubstitution>,
     locale_buf: Vec<wchar_t>,
 }
 
@@ -72,6 +72,30 @@ impl CustomTextAnalysisSourceImpl {
     /// Create a new custom TextAnalysisSource for the given text and a trait
     /// implementation.
     ///
+    /// Note: this method has no NumberSubsitution specified. See
+    /// `from_text_and_number_subst_native` if you need number substitution.
+    pub fn from_text_native(
+        inner: Box<dyn TextAnalysisSourceMethods>,
+        text: Vec<wchar_t>,
+    ) -> ComPtr<IDWriteTextAnalysisSource> {
+        assert!(text.len() <= (std::u32::MAX as usize));
+        unsafe {
+            ComPtr::from_raw(
+                CustomTextAnalysisSourceImpl {
+                    _refcount: AtomicUsize::new(1),
+                    inner,
+                    text,
+                    number_subst: None,
+                    locale_buf: Vec::new(),
+                }
+                .into_interface(),
+            )
+        }
+    }
+
+    /// Create a new custom TextAnalysisSource for the given text and a trait
+    /// implementation.
+    ///
     /// Note: this method only supports a single `NumberSubstitution` for the
     /// entire string.
     pub fn from_text_and_number_subst_native(
@@ -86,7 +110,7 @@ impl CustomTextAnalysisSourceImpl {
                     _refcount: AtomicUsize::new(1),
                     inner,
                     text,
-                    number_subst,
+                    number_subst: Some(number_subst),
                     locale_buf: Vec::new(),
                 }
                 .into_interface(),
@@ -136,9 +160,17 @@ unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetNumberSubstitution(
     if text_position >= (this.text.len() as u32) {
         return E_INVALIDARG;
     }
-    (*this.number_subst.native.get()).AddRef();
+
     *text_length = (this.text.len() as UINT32) - text_position;
-    *number_substitution = (*this.number_subst.native.get()).as_raw();
+    *number_substitution = match &this.number_subst {
+        Some(number_subst) => {
+            let com_ptr = &*number_subst.native.get();
+            com_ptr.AddRef();
+            com_ptr.as_raw()
+        },
+        None => std::ptr::null_mut()
+    };
+
     S_OK
 }
 
