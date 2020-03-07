@@ -8,7 +8,6 @@
 #![allow(non_snake_case)]
 
 use std::borrow::Cow;
-use std::cell::UnsafeCell;
 use std::ffi::OsStr;
 use std::mem;
 use std::os::windows::ffi::OsStrExt;
@@ -46,18 +45,18 @@ pub trait TextAnalysisSourceMethods {
 }
 
 #[repr(C)]
-pub struct CustomTextAnalysisSourceImpl {
+pub struct CustomTextAnalysisSourceImpl<'a> {
     // NB: This must be the first field.
     _refcount: AtomicUsize,
-    inner: Box<dyn TextAnalysisSourceMethods>,
-    text: Vec<wchar_t>,
+    inner: Box<dyn TextAnalysisSourceMethods + 'a>,
+    text: Cow<'a, [wchar_t]>,
     number_subst: Option<NumberSubstitution>,
     locale_buf: [wchar_t; LOCALE_NAME_MAX_LENGTH],
 }
 
 /// A wrapped version of an `IDWriteNumberSubstitution` object.
 pub struct NumberSubstitution {
-    native: UnsafeCell<ComPtr<IDWriteNumberSubstitution>>,
+    native: ComPtr<IDWriteNumberSubstitution>,
 }
 
 // TODO: implement Clone, for convenience and efficiency?
@@ -71,28 +70,23 @@ static TEXT_ANALYSIS_SOURCE_VTBL: IDWriteTextAnalysisSourceVtbl = IDWriteTextAna
     GetTextBeforePosition: CustomTextAnalysisSourceImpl_GetTextBeforePosition,
 };
 
-impl CustomTextAnalysisSourceImpl {
+impl<'a> CustomTextAnalysisSourceImpl<'a> {
     /// Create a new custom TextAnalysisSource for the given text and a trait
     /// implementation.
     ///
     /// Note: this method has no NumberSubsitution specified. See
     /// `from_text_and_number_subst_native` if you need number substitution.
     pub fn from_text_native(
-        inner: Box<dyn TextAnalysisSourceMethods>,
-        text: Vec<wchar_t>,
-    ) -> ComPtr<IDWriteTextAnalysisSource> {
+        inner: Box<dyn TextAnalysisSourceMethods + 'a>,
+        text: Cow<'a, [wchar_t]>,
+    ) -> CustomTextAnalysisSourceImpl<'a> {
         assert!(text.len() <= (std::u32::MAX as usize));
-        unsafe {
-            ComPtr::from_raw(
-                CustomTextAnalysisSourceImpl {
-                    _refcount: AtomicUsize::new(1),
-                    inner,
-                    text,
-                    number_subst: None,
-                    locale_buf: [0u16; LOCALE_NAME_MAX_LENGTH],
-                }
-                .into_interface(),
-            )
+        CustomTextAnalysisSourceImpl {
+            _refcount: AtomicUsize::new(1),
+            inner,
+            text,
+            number_subst: None,
+            locale_buf: [0u16; LOCALE_NAME_MAX_LENGTH],
         }
     }
 
@@ -102,27 +96,22 @@ impl CustomTextAnalysisSourceImpl {
     /// Note: this method only supports a single `NumberSubstitution` for the
     /// entire string.
     pub fn from_text_and_number_subst_native(
-        inner: Box<dyn TextAnalysisSourceMethods>,
-        text: Vec<wchar_t>,
+        inner: Box<dyn TextAnalysisSourceMethods + 'a>,
+        text: Cow<'a, [wchar_t]>,
         number_subst: NumberSubstitution,
-    ) -> ComPtr<IDWriteTextAnalysisSource> {
+    ) -> CustomTextAnalysisSourceImpl<'a> {
         assert!(text.len() <= (std::u32::MAX as usize));
-        unsafe {
-            ComPtr::from_raw(
-                CustomTextAnalysisSourceImpl {
-                    _refcount: AtomicUsize::new(1),
-                    inner,
-                    text,
-                    number_subst: Some(number_subst),
-                    locale_buf: [0u16; LOCALE_NAME_MAX_LENGTH],
-                }
-                .into_interface(),
-            )
+        CustomTextAnalysisSourceImpl {
+            _refcount: AtomicUsize::new(1),
+            inner,
+            text,
+            number_subst: Some(number_subst),
+            locale_buf: [0u16; LOCALE_NAME_MAX_LENGTH],
         }
     }
 }
 
-impl Com<IDWriteTextAnalysisSource> for CustomTextAnalysisSourceImpl {
+impl Com<IDWriteTextAnalysisSource> for CustomTextAnalysisSourceImpl<'_> {
     type Vtbl = IDWriteTextAnalysisSourceVtbl;
     #[inline]
     fn vtbl() -> &'static IDWriteTextAnalysisSourceVtbl {
@@ -130,7 +119,7 @@ impl Com<IDWriteTextAnalysisSource> for CustomTextAnalysisSourceImpl {
     }
 }
 
-impl Com<IUnknown> for CustomTextAnalysisSourceImpl {
+impl Com<IUnknown> for CustomTextAnalysisSourceImpl<'_> {
     type Vtbl = IUnknownVtbl;
     #[inline]
     fn vtbl() -> &'static IUnknownVtbl {
@@ -177,7 +166,7 @@ unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetNumberSubstitution(
     *text_length = (this.text.len() as UINT32) - text_position;
     *number_substitution = match &this.number_subst {
         Some(number_subst) => {
-            let com_ptr = &*number_subst.native.get();
+            let com_ptr = &number_subst.native;
             com_ptr.AddRef();
             com_ptr.as_raw()
         },
@@ -244,7 +233,7 @@ impl NumberSubstitution {
             );
             assert_eq!(hr, 0, "error creating number substitution");
             NumberSubstitution {
-                native: UnsafeCell::new(ComPtr::from_raw(native)),
+                native: ComPtr::from_raw(native),
             }
         }
     }
