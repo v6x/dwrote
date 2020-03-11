@@ -9,13 +9,16 @@
 
 use std::borrow::Cow;
 use std::cell::UnsafeCell;
+use std::ffi::OsStr;
 use std::mem;
+use std::os::windows::ffi::OsStrExt;
 use std::ptr::{self, null};
 use std::sync::atomic::AtomicUsize;
 use winapi::ctypes::wchar_t;
 use winapi::shared::basetsd::UINT32;
 use winapi::shared::guiddef::REFIID;
 use winapi::shared::minwindef::{FALSE, TRUE, ULONG};
+use winapi::shared::ntdef::LOCALE_NAME_MAX_LENGTH;
 use winapi::shared::winerror::{E_INVALIDARG, S_OK};
 use winapi::um::dwrite::IDWriteNumberSubstitution;
 use winapi::um::dwrite::IDWriteTextAnalysisSource;
@@ -49,7 +52,7 @@ pub struct CustomTextAnalysisSourceImpl {
     inner: Box<dyn TextAnalysisSourceMethods>,
     text: Vec<wchar_t>,
     number_subst: Option<NumberSubstitution>,
-    locale_buf: Vec<wchar_t>,
+    locale_buf: [wchar_t; LOCALE_NAME_MAX_LENGTH],
 }
 
 /// A wrapped version of an `IDWriteNumberSubstitution` object.
@@ -86,7 +89,7 @@ impl CustomTextAnalysisSourceImpl {
                     inner,
                     text,
                     number_subst: None,
-                    locale_buf: Vec::new(),
+                    locale_buf: [0u16; LOCALE_NAME_MAX_LENGTH],
                 }
                 .into_interface(),
             )
@@ -111,7 +114,7 @@ impl CustomTextAnalysisSourceImpl {
                     inner,
                     text,
                     number_subst: Some(number_subst),
-                    locale_buf: Vec::new(),
+                    locale_buf: [0u16; LOCALE_NAME_MAX_LENGTH],
                 }
                 .into_interface(),
             )
@@ -143,8 +146,18 @@ unsafe extern "system" fn CustomTextAnalysisSourceImpl_GetLocaleName(
 ) -> HRESULT {
     let this = CustomTextAnalysisSourceImpl::from_interface(this);
     let (locale, text_len) = this.inner.get_locale_name(text_position);
-    // TODO(performance): reuse buffer (and maybe use smallvec)
-    this.locale_buf = locale.as_ref().to_wide_null();
+
+    // Copy the locale data into the buffer
+    for (i, c) in OsStr::new(&*locale).encode_wide().chain(Some(0)).enumerate() {
+        // -1 here is deliberate: it ensures that we never write to the last character in
+        // this.locale_buf, so that the buffer is always null-terminated.
+        if i >= this.locale_buf.len() - 1 {
+            break
+        }
+
+        *this.locale_buf.get_unchecked_mut(i) = c;
+    }
+
     *text_length = text_len;
     *locale_name = this.locale_buf.as_ptr();
     S_OK
