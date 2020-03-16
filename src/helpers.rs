@@ -19,7 +19,7 @@ lazy_static! {
             locale
         }
     };
-    static ref EN_US_LOCALE: Vec<wchar_t> = { OsStr::new("en-us").encode_wide().collect() };
+    static ref EN_US_LOCALE: Vec<wchar_t> = { OsStr::new("en-us").to_wide_null() };
 }
 
 pub fn get_locale_string(strings: &mut ComPtr<IDWriteLocalizedStrings>) -> String {
