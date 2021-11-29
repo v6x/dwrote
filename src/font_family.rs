@@ -11,6 +11,9 @@ use wio::com::ComPtr;
 use super::*;
 use helpers::*;
 
+unsafe impl Send for FontFamily {}
+unsafe impl Sync for FontFamily {}
+
 pub struct FontFamily {
     native: UnsafeCell<ComPtr<IDWriteFontFamily>>,
 }
