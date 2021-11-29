@@ -16,11 +16,16 @@ use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_FULL_NAME;
 use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_ID;
 use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_CID_NAME;
 use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_NAME;
+use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_PREFERRED_FAMILY_NAMES;
+use winapi::um::dwrite::DWRITE_INFORMATIONAL_STRING_WIN32_SUBFAMILY_NAMES;
 use winapi::um::dwrite_1::{IDWriteFont1, DWRITE_FONT_METRICS1};
 use wio::com::ComPtr;
 
 use super::*;
 use helpers::*;
+
+unsafe impl Send for Font {}
+unsafe impl Sync for Font {}
 
 pub struct Font {
     native: UnsafeCell<ComPtr<IDWriteFont>>,
@@ -104,6 +109,21 @@ impl Font {
         }
     }
 
+    pub fn informational_nonlocalized_string(&self, id: InformationalStringId) -> Option<String> {
+        unsafe {
+            let mut names: *mut IDWriteLocalizedStrings = ptr::null_mut();
+            let mut exists = FALSE;
+            let id = id as DWRITE_INFORMATIONAL_STRING_ID;
+            let hr = (*self.native.get()).GetInformationalStrings(id, &mut names, &mut exists);
+            assert!(hr == S_OK);
+            if exists == TRUE {
+                Some(get_nonlocalized_string(&mut ComPtr::from_raw(names)))
+            } else {
+                None
+            }
+        }
+    }
+
     pub fn create_font_face(&self) -> FontFace {
         // FIXME create_font_face should cache the FontFace and return it,
         // there's a 1:1 relationship
@@ -150,6 +170,8 @@ pub enum InformationalStringId {
     FullName = DWRITE_INFORMATIONAL_STRING_FULL_NAME,
     PostscriptName = DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_NAME,
     PostscriptCidName = DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_CID_NAME,
+    PreferredFamilyName = DWRITE_INFORMATIONAL_STRING_PREFERRED_FAMILY_NAMES,
+    Win32SubfamilyName = DWRITE_INFORMATIONAL_STRING_WIN32_SUBFAMILY_NAMES,
 }
 
 /// A wrapper around the `DWRITE_FONT_METRICS` and `DWRITE_FONT_METRICS1` types.
